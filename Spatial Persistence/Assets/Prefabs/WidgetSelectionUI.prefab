@@ -55,8 +55,8 @@
   RawMode: true
   ForceBasic: true
   Anchor:
-    left: -0.930451
-    bottom: 0.520907
+    left: -1.000000
+    bottom: -1.000000
     right: 1.000000
     top: 1.000000
   Offset:
@@ -101,7 +101,7 @@
   PrefabRemaps:
     []
   Name: Image
-  Enabled: true
+  Enabled: false
   RenderOrder: 0
   StretchMode: Stretch
   VerticalAlignment: Center
@@ -215,14 +215,16 @@
   Enabled: true
   ScriptAsset: !<reference> e339af02-5361-4c89-adfe-a2a0a89a5eab
   ScriptInputsDefault:
-    widgetSelections: true
+    {}
   ScriptTypesDefault:
     {}
   ScriptInputs:
     "":
       widgetSelections: !<reference.ObjectPrefab[]>
-        []
-      itemsOffset: !<float> 10.000000
+        - !<reference> c8981352-2a3a-4834-a58c-f22ac302cf7c
+        - !<reference> 83a443ec-72be-4d13-9232-d06c2f8680c9
+        - !<reference> e24fbdd9-d7b0-4ee2-ba89-43e155b5d54c
+      itemsOffset: !<float> 8.000000
       widgetSelectionParent: !<reference.SceneObject> d2d7446c-6009-4461-acd6-fce1edc61ffc
   ScriptTypes:
     "":
@@ -308,7 +310,7 @@
   PrefabRemaps:
     []
   Name: Title
-  Enabled: true
+  Enabled: false
   Layers: 1
   LocalTransform: !<TransformEntity>
     Position: {x: 0.000000, y: 0.000000, z: 0.000000}
@@ -324,7 +326,7 @@
   PrefabRemaps:
     []
   Name: Render Mesh Visual
-  Enabled: true
+  Enabled: false
   RenderOrder: 12
   StretchMode: Stretch
   VerticalAlignment: Center
@@ -380,12 +382,12 @@
   ForceBasic: false
   Anchor:
     left: 0.000000
-    bottom: 1.000000
+    bottom: -1.000000
     right: 0.000000
-    top: 1.000000
+    top: -1.000000
   Offset:
     left: -15.000000
-    bottom: -12.035326
+    bottom: -12.115300
     right: 15.000000
     top: -3.814606
 - !<SceneObject/fed91386-d575-45a5-98e1-e02efe8c0038>
