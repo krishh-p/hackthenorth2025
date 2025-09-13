@@ -19,7 +19,6 @@ load_dotenv()
 
 # Audio configuration
 SR = 48000  # 48kHz works best
-CH = 1
 DTYPE = "int16"
 BLOCK_SIZE = 1024
 
@@ -78,9 +77,19 @@ async def test_voice_connection(ws_url):
             
             # Set up audio
             try:
+                # Get default device info to determine channels
+                default_out = sd.query_devices(kind='output')
+                default_in = sd.query_devices(kind='input')
+                
+                out_channels = min(default_out['max_output_channels'], 2)  # Use stereo if available, otherwise mono
+                in_channels = 1  # Always use mono for input
+                
+                print(f"🔊 Using output: {default_out['name']} ({out_channels} channels)")
+                print(f"🎤 Using input: {default_in['name']} ({in_channels} channels)")
+                
                 out_stream = sd.OutputStream(
-                    samplerate=SR, channels=CH, dtype=DTYPE,
-                    blocksize=BLOCK_SIZE, device=2  # AirPods Pro
+                    samplerate=SR, channels=out_channels, dtype=DTYPE,
+                    blocksize=BLOCK_SIZE  # Use default output device
                 )
                 out_stream.start()
                 print("🔊 Audio output ready")
@@ -95,9 +104,8 @@ async def test_voice_connection(ws_url):
                         pass
                 
                 in_stream = sd.InputStream(
-                    samplerate=SR, channels=CH, dtype=DTYPE,
-                    callback=mic_callback, blocksize=BLOCK_SIZE,
-                    device=1  # AirPods Pro mic
+                    samplerate=SR, channels=in_channels, dtype=DTYPE,
+                    callback=mic_callback, blocksize=BLOCK_SIZE  # Use default input device
                 )
                 in_stream.start()
                 print("🎤 Microphone ready")
@@ -116,7 +124,12 @@ async def test_voice_connection(ws_url):
                             try:
                                 arr = np.frombuffer(msg, dtype=np.int16)
                                 if len(arr) > 0:
-                                    out_stream.write(arr)
+                                    # Convert mono to stereo for output if needed
+                                    if out_channels == 2 and len(arr.shape) == 1:
+                                        stereo_arr = np.column_stack((arr, arr))
+                                        out_stream.write(stereo_arr)
+                                    else:
+                                        out_stream.write(arr)
                                     audio_count += 1
                                     if audio_count % 50 == 0:
                                         print(f"🔊 Audio chunks: {audio_count}")
