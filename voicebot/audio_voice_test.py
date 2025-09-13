@@ -17,10 +17,10 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Audio configuration
-SR = 48000  # 48kHz works best
+# Audio configuration — match your Vapi assistant setting exactly
+SR = 16000         # or 24000, but NOT 48000
 DTYPE = "int16"
-BLOCK_SIZE = 1024
+BLOCK_SIZE = 320   # 20ms @16k; use 480 if SR=24000
 
 async def simple_vapi_test():
     """Test Vapi directly"""
@@ -89,7 +89,7 @@ async def test_voice_connection(ws_url):
                 
                 out_stream = sd.OutputStream(
                     samplerate=SR, channels=out_channels, dtype=DTYPE,
-                    blocksize=BLOCK_SIZE  # Use default output device
+                    blocksize=BLOCK_SIZE
                 )
                 out_stream.start()
                 print("🔊 Audio output ready")
@@ -104,8 +104,8 @@ async def test_voice_connection(ws_url):
                         pass
                 
                 in_stream = sd.InputStream(
-                    samplerate=SR, channels=in_channels, dtype=DTYPE,
-                    callback=mic_callback, blocksize=BLOCK_SIZE  # Use default input device
+                    samplerate=SR, channels=1, dtype=DTYPE,
+                    callback=mic_callback, blocksize=BLOCK_SIZE
                 )
                 in_stream.start()
                 print("🎤 Microphone ready")
