@@ -1,8 +1,8 @@
-- !<AssetImportMetadata/2f8d0d52-a732-4b01-b451-f8c8bb43b00b>
+- !<AssetImportMetadata/f8b68036-a0a7-45d9-8d55-f4cff1caf416>
   ImportedAssetIds:
-    Texture: !<reference> f2d367d1-72ba-4be2-b7bd-493b317543e9
-  ImporterName: FileTextureImporter
-  PrimaryAsset: !<reference> f2d367d1-72ba-4be2-b7bd-493b317543e9
+    AudioOutput: !<reference> f84f84bb-6099-4069-9c36-532bbb4c3ad6
+  ImporterName: AudioOutputImporter
+  PrimaryAsset: !<reference> f84f84bb-6099-4069-9c36-532bbb4c3ad6
   PackageType: NotAPackage
   PackagePolicy: CannotBeUnpacked
   ExtraData:

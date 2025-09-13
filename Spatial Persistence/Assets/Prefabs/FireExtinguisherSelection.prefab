@@ -199,7 +199,7 @@
   LocalTransform: !<TransformEntity>
     Position: {x: 0.000000, y: 0.814125, z: 0.000000}
     Rotation: {x: 90.000000, y: -0.000000, z: 0.000000}
-    Scale: {x: 0.433938, y: 0.433938, z: 0.433938}
+    Scale: {x: 8.000000, y: 8.000000, z: 8.000000}
     HasSegmentScaleCompensation: false
   Children:
     []
@@ -276,7 +276,7 @@
   MeshShadowMode: None
   ShadowColor: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
   ShadowDensity: 1.000000
-  Text: Orange Note
+  Text: Fire Extinguisher
   Editable: false
   ShowEditingPreview: true
   TouchHandler: !<reference> 00000000-0000-0000-0000-000000000000
@@ -415,7 +415,7 @@
   MeshShadowMode: None
   ShadowColor: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
   ShadowDensity: 1.000000
-  Text: Warning!
+  Text: ""
   Editable: false
   ShowEditingPreview: true
   TouchHandler: !<reference> 00000000-0000-0000-0000-000000000000
@@ -492,8 +492,8 @@
   ShadowColor: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
   ShadowDensity: 1.000000
   Materials:
-    - !<reference> ebfa7635-d0bc-40d9-9561-c15c2de888a2
-  Mesh: !<reference> 869abc4b-50e9-4b61-bc67-a7fb8c646f6d
+    - !<reference> d6ab4a4e-18d8-4b12-ad10-5b814babf90e
+  Mesh: !<reference> b429b94c-9454-47d6-9ab9-e645cc15a09c
   Skin: !<reference> 00000000-0000-0000-0000-000000000000
   BlendShapesEnabled: true
   BlendNormals: false

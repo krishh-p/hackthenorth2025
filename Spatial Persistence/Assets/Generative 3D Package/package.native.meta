@@ -1,8 +1,8 @@
-- !<AssetImportMetadata/c1a4e558-325a-4157-9c69-17debce2f517>
+- !<AssetImportMetadata/bbdff983-0ade-febc-7259-a77a6181832f>
   ImportedAssetIds:
-    MarkdownAsset: !<reference> 82703760-4f04-47ea-8db0-bbf145153c38
-  ImporterName: MarkdownAssetImporter
-  PrimaryAsset: !<reference> 82703760-4f04-47ea-8db0-bbf145153c38
+    NativePackageDescriptor: !<reference> c137e5dc-b53d-4f4d-9e60-8007f12e97ae
+  ImporterName: NativePackageDescriptorImporter
+  PrimaryAsset: !<reference> c137e5dc-b53d-4f4d-9e60-8007f12e97ae
   PackageType: NotAPackage
   PackagePolicy: CannotBeUnpacked
   ExtraData:
