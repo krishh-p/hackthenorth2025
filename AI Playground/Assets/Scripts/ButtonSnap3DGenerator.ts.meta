@@ -1,0 +1,79 @@
+- !<AssetImportMetadata/35a44498-6dc1-4f46-82d3-ea9da1dde561>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> 5dd62ada-e4a4-4641-8b57-ccf35111ba2f
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> 5dd62ada-e4a4-4641-8b57-ccf35111ba2f
+  PackageType: NotAPackage
+  PackagePolicy: CannotBeUnpacked
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> e574f805-74de-4a72-a510-35a4e577ed51
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/e574f805-74de-4a72-a510-35a4e577ed51>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: d6662f36-56c7-4d24-8de6-67d641132906
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  CurrentVisibility: Editable
+  MaxVisibility: Editable
+  ScriptInputsHidden:
+    anchoredParent: false
+    audioComponent: false
+    centerPosition: false
+    enableAnchoring: false
+    generateSound: false
+    objectPrompts: false
+    snap3DFactory: false
+    spawnHeight: false
+    spawnRadius: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  DefaultScriptInputs:
+    - snap3DFactory: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
+      objectPrompts: !<string[]>
+        - ""
+        - A blue book
+        - A yellow pencil
+      spawnRadius: !<float> 2.000000
+      spawnHeight: !<float> 0.000000
+      centerPosition: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+      audioComponent: !<reference.AudioComponent> 00000000-0000-0000-0000-000000000000
+      generateSound: !<reference.AudioTrackAsset> 00000000-0000-0000-0000-000000000000
+      enableAnchoring: true
+      anchoredParent: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - '// @ui {"widget":"separator"}'
+    - '// @ui {"widget":"label", "label":"Example of using generative 3D with Snap3D"}'
+    - // @input AssignableType snap3DFactory
+    - '// @ui {"widget":"separator"}'
+    - '// @input string[] objectPrompts = {"A red apple","A blue book","A yellow pencil"}'
+    - '// @ui {"widget":"group_start", "label":"Object Prompts"}'
+    - '// @ui {"widget":"group_end"}'
+    - // @input float spawnRadius = 2
+    - '// @ui {"widget":"group_start", "label":"Spawn Settings"}'
+    - // @input float spawnHeight
+    - // @input SceneObject centerPosition
+    - '// @ui {"widget":"group_end"}'
+    - // @input Component.AudioComponent audioComponent
+    - '// @ui {"widget":"group_start", "label":"Audio Feedback"}'
+    - // @input Asset.AudioTrackAsset generateSound
+    - '// @ui {"widget":"group_end"}'
+    - // @input bool enableAnchoring = true
+    - '// @ui {"widget":"group_start", "label":"Spatial Anchoring"}'
+    - // @input SceneObject anchoredParent
+    - '// @ui {"widget":"group_end"}'

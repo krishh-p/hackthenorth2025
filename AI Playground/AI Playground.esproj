@@ -16,7 +16,7 @@ viewConfig:
     resolutionScale: 1.000000
     viewport: Maximized
     output: Live
-    stereoOutputEye: Center
+    stereoOutputEye: Right
     deviceTypeOverride: Unknown
     tint: true
     screenshot: false
