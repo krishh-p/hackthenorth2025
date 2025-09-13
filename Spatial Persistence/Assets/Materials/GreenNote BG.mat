@@ -1,0 +1,117 @@
+- !<Material/6ff595ef-4457-4d8c-bea1-32770a47201d>
+  PackagePath: ""
+  PassesInfo:
+    - !<own> 2f810637-3c6d-4d6d-b1ae-7036c0fba12a
+    - !<own> 1f5ec0eb-c5e0-40b1-a304-d44f16b53042
+- !<PassInfo/1f5ec0eb-c5e0-40b1-a304-d44f16b53042>
+  CachedProperties:
+    - overrideTimeElapsed:
+        typeIdx: 1
+        value: 0.000000
+    - overrideTimeEnabled:
+        typeIdx: 0
+        value: 0
+  DepthWrite: true
+  DepthTest: true
+  DepthFunction: LessEqual
+  TwoSided: false
+  ColorMask: {x: true, y: true, z: true, w: true}
+  CullMode: Back
+  PolygonOffset: {x: 0.000000, y: 0.000000}
+  FrustumCulling: Auto
+  FrustumCullPad: 0.000000
+  InstanceCount: 1
+  Defines:
+    []
+  BlendMode: AlphaToCoverage
+  Properties:
+    Port_RangeMaxA_N010:
+      typeIdx: 1
+      value: 1.000000
+    Port_RangeMaxB_N010:
+      typeIdx: 1
+      value: 1.000000
+    Port_RangeMinA_N010:
+      typeIdx: 1
+      value: -1.000000
+    Port_RangeMinB_N010:
+      typeIdx: 1
+      value: 0.000000
+    PreviewEnabled:
+      typeIdx: 0
+      value: 0
+    Tweak_N12:
+      typeIdx: 5
+      value: {x: 0.901961, y: 0.403922, z: 0.321569, w: 1.000000}
+    Tweak_N15:
+      typeIdx: 1
+      value: 5.000000
+    strength:
+      typeIdx: 1
+      value: 0.000000
+  Pass: !<reference> 29ae4bc2-de37-4cd0-8eff-1ce2057794cf
+- !<PassInfo/2f810637-3c6d-4d6d-b1ae-7036c0fba12a>
+  CachedProperties:
+    - baseTexBorderColor:
+        typeIdx: 5
+        value: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
+    - baseTexDims:
+        typeIdx: 5
+        value: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
+    - baseTexTransform:
+        typeIdx: 7
+        value:
+          0: {x: 1.000000, y: 0.000000, z: 0.000000}
+          1: {x: 0.000000, y: 1.000000, z: 0.000000}
+          2: {x: 0.000000, y: 0.000000, z: 1.000000}
+    - baseTexUvMinMax:
+        typeIdx: 5
+        value: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
+  DepthWrite: true
+  DepthTest: true
+  DepthFunction: LessEqual
+  TwoSided: false
+  ColorMask: {x: true, y: true, z: true, w: true}
+  CullMode: Back
+  PolygonOffset: {x: 0.000000, y: 0.000000}
+  FrustumCulling: Auto
+  FrustumCullPad: 0.000000
+  InstanceCount: 1
+  Defines:
+    []
+  BlendMode: Disabled
+  Properties:
+    Port_AO_N006:
+      typeIdx: 4
+      value: {x: 1.000000, y: 1.000000, z: 1.000000}
+    Port_Emissive_N006:
+      typeIdx: 4
+      value: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Port_SpecularAO_N006:
+      typeIdx: 4
+      value: {x: 1.000000, y: 1.000000, z: 1.000000}
+    PreviewEnabled:
+      typeIdx: 0
+      value: 0
+    baseColor:
+      typeIdx: 5
+      value: {x: 0.595041, y: 1.000000, z: 0.218677, w: 1.000000}
+    baseTex:
+      typeIdx: 9
+      value:
+        id: 9d8fe5dd-dfd5-4f45-98e0-c65abc465e01
+        sampler:
+          filteringMode: Trilinear
+          wrapModeU: Repeat
+          wrapModeV: Repeat
+          wrapModeW: Repeat
+          borderColor: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
+          mipmaps: false
+        type: Texture2D
+    metallic:
+      typeIdx: 1
+      value: 0.000000
+    roughness:
+      typeIdx: 1
+      value: 1.000000
+  Pass: !<reference> 16d0ffaf-9750-4d4d-b126-8383d633bd1d

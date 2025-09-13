@@ -1,0 +1,50 @@
+- !<AssetImportMetadata/268f44ee-c753-47e0-b1ca-057c9ef4d551>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> 63197625-1819-44d2-a99d-65bdae1a975c
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> 63197625-1819-44d2-a99d-65bdae1a975c
+  PackageType: NotAPackage
+  PackagePolicy: CannotBeUnpacked
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> 51800b94-4576-4391-baa6-b8a55ea07ee7
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/51800b94-4576-4391-baa6-b8a55ea07ee7>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: bc70df47-906c-43db-8b73-f57aa8e7f889
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  CurrentVisibility: Editable
+  MaxVisibility: Editable
+  ScriptInputsHidden:
+    boxMesh: false
+    manipulateOutlineMaterial: false
+    physicsBody: false
+    textComponent: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  DefaultScriptInputs:
+    - boxMesh: !<reference.RenderMeshVisual> 00000000-0000-0000-0000-000000000000
+      physicsBody: !<reference.BodyComponent> 00000000-0000-0000-0000-000000000000
+      manipulateOutlineMaterial: !<reference.Material> 00000000-0000-0000-0000-000000000000
+      textComponent: !<reference.Text> 00000000-0000-0000-0000-000000000000
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - // @input Component.RenderMeshVisual boxMesh
+    - '// @input Component.BodyComponent physicsBody {"hint":"Physics body for gravity after dropping (optional)"}'
+    - '// @input Asset.Material manipulateOutlineMaterial {"hint":"Outline material that appears when the box is being manipulated"}'
+    - '// @input Component.Text textComponent {"hint":"Text component for Widget compatibility (leave empty for boxes)"}'
