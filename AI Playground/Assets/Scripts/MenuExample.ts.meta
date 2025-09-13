@@ -1,0 +1,41 @@
+- !<AssetImportMetadata/51d4e310-bcc3-4e5e-8f46-98d04d5275e7>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> 32c35e00-d458-498d-87c2-f41fae28cd22
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> 32c35e00-d458-498d-87c2-f41fae28cd22
+  PackageType: NotAPackage
+  PackagePolicy: CannotBeUnpacked
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> 6f10b86c-32ea-4ee7-bdfc-dcb1410a4af5
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/6f10b86c-32ea-4ee7-bdfc-dcb1410a4af5>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: aec95c77-90c4-4676-87e4-d57b17bc4305
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  CurrentVisibility: Editable
+  MaxVisibility: Editable
+  ScriptInputsHidden:
+    menuManager: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  DefaultScriptInputs:
+    - menuManager: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - // @input AssignableType menuManager
