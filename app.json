@@ -1,0 +1,35 @@
+{
+  "name": "voicebot-chat-api",
+  "description": "FastAPI server for Vapi voicebot integration - cloud ready",
+  "image": "heroku/python",
+  "stack": "heroku-22",
+  "buildpacks": [
+    {
+      "url": "heroku/python"
+    }
+  ],
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "basic"
+    }
+  },
+  "addons": [],
+  "env": {
+    "VAPI_API_KEY": {
+      "description": "Your Vapi API key",
+      "required": true
+    },
+    "VAPI_ASSISTANT_ID": {
+      "description": "Your Vapi assistant ID", 
+      "required": true
+    },
+    "PORT": {
+      "description": "Port for the web server (set automatically by Heroku)",
+      "required": false
+    }
+  },
+  "scripts": {
+    "postdeploy": "echo 'Deployment complete! Visit /demo to test the interface.'"
+  }
+}
