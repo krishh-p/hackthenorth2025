@@ -36,7 +36,8 @@ export class Snap3DInteractableFactory extends BaseScriptComponent {
 
   createInteractable3DObject(
     input: string,
-    overridePosition?: vec3
+    overridePosition?: vec3,
+    parentObject?: SceneObject
   ): Promise<string> {
     return new Promise((resolve, reject) => {
       if (!this.avaliableToRequest) {
@@ -45,7 +46,7 @@ export class Snap3DInteractableFactory extends BaseScriptComponent {
       }
       this.avaliableToRequest = false;
       let outputObj = this.snap3DInteractablePrefab.instantiate(
-        this.sceneObject
+        parentObject || this.sceneObject
       );
       outputObj.name = "Snap3DInteractable - " + input;
       let snap3DInteractable = outputObj.getComponent(
