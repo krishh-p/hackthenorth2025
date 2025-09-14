@@ -6,6 +6,7 @@
     - !<own> 1b55a799-781e-4c9b-a064-753ddee7112d
     - !<own> 867a6806-8d0e-4a93-8b86-ef91522c708d
     - !<own> 91949305-d873-440c-ae6a-89333d589b80
+    - !<own> 1554754d-7fed-40a8-b5e7-f083c5f3fa70
     - !<own> e98b2a4f-f300-4094-a125-464834a4be87
     - !<own> 3caf03aa-8218-4bb7-a859-673e967c56dd
     - !<own> 02add429-6902-4120-995b-5f8014f01823
@@ -100,7 +101,7 @@
   PrefabRemaps:
     []
   Name: Object 1
-  Enabled: true
+  Enabled: false
   Layers: 1
   LocalTransform: !<TransformEntity>
     Position: {x: 0.000000, y: 0.000000, z: 0.000000}
@@ -411,6 +412,21 @@
     - !<own> 4d75f471-9b48-4b6f-aa35-ecb1d7d4c0fb
   Components:
     []
+- !<SceneObject/1554754d-7fed-40a8-b5e7-f083c5f3fa70>
+  PrefabRemaps:
+    []
+  Name: WebSocketController
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> b245c48d-b21f-415d-ba7e-d99a945c3445
 - !<SceneObject/18c6646c-d787-40eb-b594-cb83f8a4ee95>
   PrefabRemaps:
     []
@@ -1547,7 +1563,6 @@
   ScriptInputsDefault:
     spawnRadius: true
     spawnHeight: true
-    objectsParent: true
   ScriptTypesDefault:
     {}
   ScriptInputs:
@@ -1564,7 +1579,7 @@
       generateSound: !<reference.AudioTrackAsset> fa9421aa-0b52-43f6-aa63-9290ce06106d
       anchorModule: !<MappingBased.AssignableType_1> 62de5c58-1636-49b1-b7f6-dc42eb76ed68
       camera: !<reference.SceneObject> 00000000-0000-0065-0000-000000000064
-      objectsParent: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+      objectsParent: !<reference.SceneObject> 48924848-4974-45ca-8cff-e028ddad8faf
   ScriptTypes:
     "":
       {}
@@ -3261,6 +3276,22 @@
   Components:
     - !<own> ab22849e-ac61-44f6-a05a-705b1b8d329f
     - !<own> 2153b6bf-a479-4099-aade-b47df58fc906
+- !<ScriptComponent/b245c48d-b21f-415d-ba7e-d99a945c3445>
+  PrefabRemaps:
+    []
+  Name: WebSocketController
+  Enabled: true
+  ScriptAsset: !<reference> 77453fdc-6632-49ea-afc0-90ad5018df4d
+  ScriptInputsDefault:
+    {}
+  ScriptTypesDefault:
+    {}
+  ScriptInputs:
+    "":
+      serverUrl: "wss://hackthenorth2025-voicebot-fdeea2d593ac.herokuapp.com/snap-lens"
+  ScriptTypes:
+    "":
+      {}
 - !<RenderMeshVisual/b347503f-aa87-4d61-8358-3f46d7939693>
   PrefabRemaps:
     []
@@ -3899,7 +3930,7 @@
   PrefabRemaps:
     []
   Name: FireScenario
-  Enabled: true
+  Enabled: false
   Layers: 1
   LocalTransform: !<TransformEntity>
     Position: {x: 0.000000, y: -25.000000, z: -50.000000}
@@ -4208,7 +4239,7 @@
   PrefabRemaps:
     []
   Name: MicButton
-  Enabled: true
+  Enabled: false
   Layers: 1
   LocalTransform: !<TransformEntity>
     Position: {x: 0.000000, y: -20.000000, z: -50.000000}

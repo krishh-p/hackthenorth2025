@@ -27,16 +27,27 @@
   CurrentVisibility: Editable
   MaxVisibility: Editable
   ScriptInputsHidden:
-    {}
+    buttonSnap3DGenerator: false
+    pinchCooldown: false
+    pinchThreshold: false
+    useRightHand: false
+    webSocketController: false
   ScriptTypesHidden:
     {}
   ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
   DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
   DefaultScriptInputs:
-    -
-      {}
+    - buttonSnap3DGenerator: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
+      webSocketController: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
+      useRightHand: true
+      pinchThreshold: !<float> 8.000000
+      pinchCooldown: !<float> 1.000000
   ScriptTypes:
     -
       {}
   InputLines:
-    []
+    - '// @input AssignableType buttonSnap3DGenerator {"hint":"Reference to the ButtonSnap3DGenerator"}'
+    - '// @input AssignableType_1 webSocketController {"hint":"Reference to the WebSocketController"}'
+    - '// @input bool useRightHand = true {"hint":"Use right hand? (true = Right hand, false = Left hand)"}'
+    - '// @input float pinchThreshold = 8 {"hint":"Distance threshold for pinch detection"}'
+    - '// @input float pinchCooldown = 1 {"hint":"Minimum time between pinch detections (in seconds)"}'
