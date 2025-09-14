@@ -495,14 +495,8 @@ async def demo_page():
                         window.audioContext.resume();
                     }
                     
-                    // Automatically connect to Vapi
-                    if (window.vapiCallData) {
-                        addMessage('Connecting to Vapi...');
-                        ws.send(JSON.stringify({
-                            type: 'connect_to_vapi',
-                            vapi_url: window.vapiCallData.websocket_url // This will be the real Vapi URL
-                        }));
-                    }
+                    // Vapi connection is now handled automatically on server side
+                    // No need to send connect_to_vapi message
                 };
                 
                 ws.onmessage = function(event) {
@@ -574,52 +568,55 @@ async def demo_page():
                             sampleRate: 16000,
                             channelCount: 1,
                             echoCancellation: true,
-                            noiseSuppression: true
+                            noiseSuppression: true,
+                            autoGainControl: true
                         }
                     });
                     
-                    // Use Web Audio API for better audio processing
-                    if (!window.audioContext) {
-                        window.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                    }
+                    // Use MediaRecorder for better compatibility
+                    mediaRecorder = new MediaRecorder(stream, {
+                        mimeType: 'audio/webm;codecs=opus',
+                        audioBitsPerSecond: 16000
+                    });
                     
-                    const source = window.audioContext.createMediaStreamSource(stream);
-                    const processor = window.audioContext.createScriptProcessor(4096, 1, 1);
+                    let isRecording = true;
                     
-                    processor.onaudioprocess = function(e) {
-                        if (ws && ws.readyState === WebSocket.OPEN) {
-                            const inputData = e.inputBuffer.getChannelData(0);
-                            
-                            // Convert float32 to 16-bit PCM
-                            const pcmData = new Int16Array(inputData.length);
-                            for (let i = 0; i < inputData.length; i++) {
-                                // Clamp to [-1, 1] and convert to 16-bit
-                                const sample = Math.max(-1, Math.min(1, inputData[i]));
-                                pcmData[i] = sample * 32767;
-                            }
-                            
-                            // Convert to base64
-                            const bytes = new Uint8Array(pcmData.buffer);
-                            let binary = '';
-                            for (let i = 0; i < bytes.length; i++) {
-                                binary += String.fromCharCode(bytes[i]);
-                            }
-                            const base64 = btoa(binary);
-                            
-                            ws.send(JSON.stringify({
-                                type: 'audio_to_vapi',
-                                data: base64
-                            }));
+                    let audioSentCount = 0;
+                    mediaRecorder.ondataavailable = function(event) {
+                        if (event.data.size > 0 && ws && ws.readyState === WebSocket.OPEN && isRecording) {
+                            const reader = new FileReader();
+                            reader.onload = function() {
+                                const arrayBuffer = reader.result;
+                                const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+                                
+                                ws.send(JSON.stringify({
+                                    type: 'audio_to_vapi',
+                                    data: base64
+                                }));
+                                
+                                // Debug: Show mic is working
+                                audioSentCount++;
+                                if (audioSentCount % 10 === 1) { // Every 1 second
+                                    addMessage(`🎤 Mic active (${audioSentCount} chunks sent)`);
+                                }
+                            };
+                            reader.readAsArrayBuffer(event.data);
                         }
                     };
                     
-                    source.connect(processor);
-                    processor.connect(window.audioContext.destination);
+                    mediaRecorder.onstop = function() {
+                        isRecording = false;
+                        addMessage('🔇 Recording stopped');
+                        stream.getTracks().forEach(track => track.stop());
+                    };
                     
-                    // Store references for cleanup
+                    mediaRecorder.onerror = function(event) {
+                        addMessage('Recording error: ' + event.error);
+                    };
+                    
+                    // Start recording with frequent data events
+                    mediaRecorder.start(100); // 100ms chunks for real-time
                     window.micStream = stream;
-                    window.micProcessor = processor;
-                    window.micSource = source;
                     
                     document.getElementById('recordBtn').disabled = true;
                     document.getElementById('stopBtn').disabled = false;
@@ -631,15 +628,10 @@ async def demo_page():
             }
             
             function stopRecording() {
-                // Clean up Web Audio API components
-                if (window.micProcessor) {
-                    window.micProcessor.disconnect();
-                    window.micProcessor = null;
+                if (mediaRecorder && mediaRecorder.state === 'recording') {
+                    mediaRecorder.stop();
                 }
-                if (window.micSource) {
-                    window.micSource.disconnect();
-                    window.micSource = null;
-                }
+                
                 if (window.micStream) {
                     window.micStream.getTracks().forEach(track => track.stop());
                     window.micStream = null;
@@ -647,7 +639,6 @@ async def demo_page():
                 
                 document.getElementById('recordBtn').disabled = false;
                 document.getElementById('stopBtn').disabled = true;
-                addMessage('🔇 Recording stopped');
             }
             
             // Audio buffering for smooth playback
@@ -701,6 +692,7 @@ async def demo_page():
             function playNextAudioChunk() {
                 if (audioQueue.length === 0) {
                     isPlaying = false;
+                    nextPlayTime = window.audioContext.currentTime;
                     return;
                 }
                 
@@ -714,17 +706,17 @@ async def demo_page():
                 
                 // Calculate when to start this chunk
                 const currentTime = window.audioContext.currentTime;
-                const startTime = Math.max(currentTime, nextPlayTime);
+                const startTime = Math.max(currentTime + 0.01, nextPlayTime); // Small buffer
                 
                 source.start(startTime);
                 
                 // Calculate when the next chunk should start
                 nextPlayTime = startTime + audioBuffer.duration;
                 
-                // Schedule next chunk
-                source.onended = () => {
+                // Schedule next chunk immediately to avoid gaps
+                setTimeout(() => {
                     playNextAudioChunk();
-                };
+                }, (audioBuffer.duration * 1000) - 50); // Start 50ms before current ends
             }
             
             // Allow Enter key to send text
