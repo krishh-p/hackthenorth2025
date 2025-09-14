@@ -5,10 +5,12 @@
     - !<own> 5aa0f98b-e799-448c-a2dc-cae5d04fa2a4
     - !<own> 1b55a799-781e-4c9b-a064-753ddee7112d
     - !<own> 867a6806-8d0e-4a93-8b86-ef91522c708d
+    - !<own> 91949305-d873-440c-ae6a-89333d589b80
     - !<own> e98b2a4f-f300-4094-a125-464834a4be87
     - !<own> 3caf03aa-8218-4bb7-a859-673e967c56dd
     - !<own> 02add429-6902-4120-995b-5f8014f01823
     - !<own> 4adf44dc-a757-4bbd-b0b0-7973d08ee937
+    - !<own> 48924848-4974-45ca-8cff-e028ddad8faf
   layers: !<Layers/267ee9a7-aff2-4f9d-9a49-f71214747d03>
     userLayers:
       []
@@ -1313,6 +1315,21 @@
     []
   Components:
     - !<own> 55be292f-0363-41f1-b55c-70fcb8e4dd25
+- !<SceneObject/48924848-4974-45ca-8cff-e028ddad8faf>
+  PrefabRemaps:
+    []
+  Name: Daddy Object
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    []
 - !<SceneObject/4a8fba8e-5e79-4c17-9b90-eecc02c7b7dc>
   PrefabRemaps:
     []
@@ -1530,7 +1547,6 @@
   ScriptInputsDefault:
     spawnRadius: true
     spawnHeight: true
-    enableAnchoring: true
   ScriptTypesDefault:
     {}
   ScriptInputs:
@@ -1545,8 +1561,8 @@
       centerPosition: !<reference.SceneObject> 0d32867c-8db4-4af7-a8c2-b4662ee24314
       audioComponent: !<reference.AudioComponent> 33e4c4b4-b82f-45e2-9706-0f5c09d30bd1
       generateSound: !<reference.AudioTrackAsset> fa9421aa-0b52-43f6-aa63-9290ce06106d
-      enableAnchoring: true
-      anchoredParent: !<reference.SceneObject> e3c537b6-cc7c-4690-8747-c22de61e16de
+      anchorModule: !<MappingBased.AssignableType_1> 62de5c58-1636-49b1-b7f6-dc42eb76ed68
+      camera: !<reference.SceneObject> 00000000-0000-0065-0000-000000000064
   ScriptTypes:
     "":
       {}
@@ -2109,6 +2125,24 @@
     CapitalizationOverride: None
   DepthTest: true
   TwoSided: false
+- !<ScriptComponent/62de5c58-1636-49b1-b7f6-dc42eb76ed68>
+  PrefabRemaps:
+    []
+  Name: AnchorModule
+  Enabled: true
+  ScriptAsset: !<reference> d7365b94-dd04-4655-bd5f-87a7de3148bb
+  ScriptInputsDefault:
+    cloudStorage: true
+    debug: true
+  ScriptTypesDefault:
+    {}
+  ScriptInputs:
+    "":
+      cloudStorage: !<reference.LocationCloudStorageModule> 00000000-0000-0000-0000-000000000000
+      debug: true
+  ScriptTypes:
+    "":
+      {}
 - !<SceneObject/63f6692e-cf9d-4d2c-8e59-eaf3855ee741>
   PrefabRemaps:
     []
@@ -2706,6 +2740,21 @@
   ScriptTypes:
     "":
       {}
+- !<SceneObject/91949305-d873-440c-ae6a-89333d589b80>
+  PrefabRemaps:
+    []
+  Name: AnchorModule
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> 62de5c58-1636-49b1-b7f6-dc42eb76ed68
 - !<SceneObject/929164ef-2d41-474a-a457-1bf03d6cd9f1>
   PrefabRemaps:
     []
