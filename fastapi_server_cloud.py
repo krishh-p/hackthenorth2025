@@ -306,7 +306,7 @@ async def websocket_endpoint(websocket: WebSocket, call_id: str):
                 if message_type == "connect_to_vapi":
                     # Client requests connection to Vapi
                     vapi_ws_url = message.get("vapi_url")
-                    if vapi_ws_url:
+                    if vapi_ws_url and vapi_ws_url.startswith("wss://"):
                         # Start Vapi connection in background
                         asyncio.create_task(
                             vapi_service.connect_to_vapi(vapi_ws_url, call_id)
@@ -314,7 +314,7 @@ async def websocket_endpoint(websocket: WebSocket, call_id: str):
                     else:
                         await websocket.send_text(json.dumps({
                             "type": "error",
-                            "message": "vapi_url required for connection"
+                            "message": f"Invalid vapi_url: {vapi_ws_url}"
                         }))
                 
                 elif message_type == "audio_to_vapi":
@@ -497,11 +497,18 @@ async def demo_page():
                 
                 ws.onmessage = function(event) {
                     const data = JSON.parse(event.data);
-                    addMessage('Received: ' + JSON.stringify(data));
                     
                     if (data.type === 'audio_from_vapi') {
-                        // Handle audio playback here
                         addMessage('Received audio from Vapi');
+                        // Play the audio
+                        playAudioFromBase64(data.data);
+                    } else if (data.type === 'vapi_connected') {
+                        addMessage('🎉 Connected to Vapi! You can now speak.');
+                        updateStatus('Connected to Vapi - Ready to chat!', true);
+                    } else if (data.type === 'vapi_error') {
+                        addMessage('❌ Vapi Error: ' + data.error);
+                    } else {
+                        addMessage('Received: ' + JSON.stringify(data));
                     }
                 };
                 
@@ -536,34 +543,47 @@ async def demo_page():
             
             async function startRecording() {
                 try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    mediaRecorder = new MediaRecorder(stream);
+                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                        audio: {
+                            sampleRate: 16000,
+                            channelCount: 1,
+                            echoCancellation: true,
+                            noiseSuppression: true
+                        }
+                    });
+                    
+                    mediaRecorder = new MediaRecorder(stream, {
+                        mimeType: 'audio/webm;codecs=opus'
+                    });
                     audioChunks = [];
                     
+                    // Send audio chunks continuously while recording
                     mediaRecorder.ondataavailable = function(event) {
-                        audioChunks.push(event.data);
-                    };
-                    
-                    mediaRecorder.onstop = function() {
-                        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                        const reader = new FileReader();
-                        reader.onload = function() {
-                            const base64 = reader.result.split(',')[1];
-                            if (ws) {
+                        if (event.data.size > 0 && ws && ws.readyState === WebSocket.OPEN) {
+                            const reader = new FileReader();
+                            reader.onload = function() {
+                                const base64 = reader.result.split(',')[1];
                                 ws.send(JSON.stringify({
                                     type: 'audio_to_vapi',
                                     data: base64
                                 }));
-                                addMessage('Sent audio data');
-                            }
-                        };
-                        reader.readAsDataURL(audioBlob);
+                            };
+                            reader.readAsDataURL(event.data);
+                        }
+                        audioChunks.push(event.data);
                     };
                     
-                    mediaRecorder.start();
+                    mediaRecorder.onstop = function() {
+                        addMessage('Recording stopped');
+                        // Stop all tracks to release microphone
+                        stream.getTracks().forEach(track => track.stop());
+                    };
+                    
+                    // Start recording with small chunks for real-time streaming
+                    mediaRecorder.start(100); // 100ms chunks
                     document.getElementById('recordBtn').disabled = true;
                     document.getElementById('stopBtn').disabled = false;
-                    addMessage('Recording started');
+                    addMessage('🎤 Recording started - speak now!');
                     
                 } catch (error) {
                     addMessage('Error accessing microphone: ' + error);
@@ -576,6 +596,38 @@ async def demo_page():
                     document.getElementById('recordBtn').disabled = false;
                     document.getElementById('stopBtn').disabled = true;
                     addMessage('Recording stopped');
+                }
+            }
+            
+            function playAudioFromBase64(base64Data) {
+                try {
+                    // Convert base64 to blob
+                    const binaryString = atob(base64Data);
+                    const bytes = new Uint8Array(binaryString.length);
+                    for (let i = 0; i < binaryString.length; i++) {
+                        bytes[i] = binaryString.charCodeAt(i);
+                    }
+                    
+                    // Create audio blob (assuming 16-bit PCM, 16kHz, mono)
+                    const audioBlob = new Blob([bytes], { type: 'audio/wav' });
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    
+                    // Play the audio
+                    const audio = new Audio();
+                    audio.src = audioUrl;
+                    audio.play().catch(e => {
+                        console.error('Error playing audio:', e);
+                        addMessage('Error playing audio: ' + e.message);
+                    });
+                    
+                    // Clean up the URL after playing
+                    audio.onended = () => {
+                        URL.revokeObjectURL(audioUrl);
+                    };
+                    
+                } catch (error) {
+                    console.error('Error processing audio:', error);
+                    addMessage('Error processing audio: ' + error.message);
                 }
             }
             
