@@ -282,6 +282,32 @@ async def demo_page():
                 transform: translateY(-2px);
             }
             
+            .disconnect-btn {
+                background: linear-gradient(45deg, #666666, #555555);
+                color: white;
+                border: none;
+                padding: 15px 30px;
+                border-radius: 50px;
+                cursor: pointer;
+                font-size: 18px;
+                font-weight: bold;
+                transition: all 0.3s ease;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                min-width: 150px;
+            }
+            
+            .disconnect-btn:hover:not(:disabled) {
+                transform: translateY(-3px);
+                box-shadow: 0 6px 20px rgba(102, 102, 102, 0.4);
+            }
+            
+            .disconnect-btn:disabled {
+                background: #444;
+                cursor: not-allowed;
+                transform: none;
+            }
+            
             .messages {
                 background: rgba(0,0,0,0.3);
                 padding: 25px;
@@ -351,6 +377,9 @@ async def demo_page():
             <div class="controls">
                 <button id="connectBtn" class="connect-btn" onclick="connect()">
                     Connect to AI
+                </button>
+                <button id="disconnectBtn" class="disconnect-btn" onclick="disconnect()" disabled>
+                    Disconnect
                 </button>
                 <button id="recordBtn" class="record-btn" onclick="startRecording()" disabled>
                     Start Recording
@@ -503,9 +532,10 @@ async def demo_page():
             }
             
             function connect() {
-                const btn = document.getElementById('connectBtn');
-                btn.disabled = true;
-                btn.textContent = 'Connecting...';
+                const connectBtn = document.getElementById('connectBtn');
+                const disconnectBtn = document.getElementById('disconnectBtn');
+                connectBtn.disabled = true;
+                connectBtn.textContent = 'Connecting...';
                 
                 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
                 const wsUrl = protocol + '//' + window.location.host + '/ws/demo_call';
@@ -514,7 +544,9 @@ async def demo_page():
                 ws.onopen = function() {
                     updateStatus('🟢 Connected - Ready to speak!', 'connected');
                     addMessage('Connected to professional AI voice system');
-                    btn.textContent = 'Connected';
+                    connectBtn.textContent = 'Connected';
+                    connectBtn.disabled = true;
+                    disconnectBtn.disabled = false;
                     document.getElementById('recordBtn').disabled = false;
                 };
                 
@@ -540,16 +572,26 @@ async def demo_page():
                 ws.onclose = function() {
                     updateStatus('🔴 Disconnected', 'disconnected');
                     addMessage('Disconnected from AI assistant');
-                    btn.disabled = false;
-                    btn.textContent = 'Connect to AI';
+                    connectBtn.disabled = false;
+                    connectBtn.textContent = 'Connect to AI';
+                    disconnectBtn.disabled = true;
                     document.getElementById('recordBtn').disabled = true;
+                    document.getElementById('recordBtn').textContent = 'Start Recording';
                 };
                 
                 ws.onerror = function(error) {
                     addMessage('Connection error occurred');
-                    btn.disabled = false;
-                    btn.textContent = 'Connect to AI';
+                    connectBtn.disabled = false;
+                    connectBtn.textContent = 'Connect to AI';
+                    disconnectBtn.disabled = true;
                 };
+            }
+            
+            function disconnect() {
+                if (ws) {
+                    ws.close();
+                    addMessage('Manually disconnected from AI');
+                }
             }
             
             // Professional AudioWorklet-based recording
@@ -575,6 +617,8 @@ async def demo_page():
                     
                     worklet.port.onmessage = (ev) => {
                         if (ws && ws.readyState === WebSocket.OPEN) {
+                            // Add debug logging for microphone data
+                            console.log('🎤 Sending mic data, size:', ev.data.byteLength);
                             // Send binary ArrayBuffer (PCM16 mono 16k) directly
                             ws.send(ev.data);
                         }
