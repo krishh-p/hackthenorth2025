@@ -435,7 +435,7 @@ async def demo_page():
                     // Convert to Float32 for AudioBuffer
                     const float = new Float32Array(pcm16.length);
                     for (let i = 0; i < pcm16.length; i++) {
-                        float[i] = Math.max(-1, Math.min(1, pcm16[i] / 32768)) * 4.0; // 4x volume boost for testing
+                        float[i] = Math.max(-1, Math.min(1, pcm16[i] / 32768)) * 2.2; // 2.2x volume boost (reduced bass)
                     }
 
                     const buf = audioContext.createBuffer(1, float.length, SR_IN);
@@ -450,7 +450,7 @@ async def demo_page():
                     
                     // Add gain node for extra volume
                     const gainNode = audioContext.createGain();
-                    gainNode.gain.value = 3.0; // Extra volume boost
+                    gainNode.gain.value = 2.0; // Moderate volume boost (reduced bass)
                     
                     src.connect(gainNode);
                     gainNode.connect(audioContext.destination);
