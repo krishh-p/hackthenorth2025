@@ -593,11 +593,11 @@ async def websocket_endpoint(websocket: WebSocket, call_id: str):
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
-    print("🚀 Starting Server-Side Audio Voicebot")
+    print("🚀 Starting Professional Audio Voicebot")
     print("=" * 50)
-    print("✅ Server-side audio processing")
-    print("🌐 Optimized for deployment")
-    print("🎤 Minimal browser audio complexity")
+    print("✅ AudioWorklet PCM16 capture")
+    print("🎤 Professional jitter buffer")
+    print("🌐 Binary WebSocket transport")
     print("=" * 50)
     
-    uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
+    uvicorn.run("fastapi_server_cloud:app", host="0.0.0.0", port=port, log_level="info")
