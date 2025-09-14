@@ -78,6 +78,7 @@
     - // @input AssignableType_1 anchorModule
     - '// @ui {"widget":"group_start", "label":"Spatial Anchoring"}'
     - // @input SceneObject camera
+    - // @input SceneObject objectsParent
     - '// @ui {"widget":"group_end"}'
     - // @input SceneObject objectsParent
     - '// @ui {"widget":"group_start", "label":"Object Container"}'
