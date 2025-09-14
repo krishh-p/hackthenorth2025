@@ -1,4 +1,4 @@
-# Train in a Snap! 👓🔥🗣️  
+# Train in a Snap!  
 
 **Immersive AR training powered by Snapchat Spectacles, Snap APIs, and Vapi Voice AI**  
 
