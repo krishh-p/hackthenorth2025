@@ -101,6 +101,19 @@ class ServerAudioManager:
         try:
             async for message in vapi_ws:
                 try:
+                    # Handle binary audio data
+                    if isinstance(message, bytes):
+                        # Raw binary audio from Vapi - convert to base64 for client
+                        import base64
+                        audio_b64 = base64.b64encode(message).decode('utf-8')
+                        if call_id in self.client_connections:
+                            await self.client_connections[call_id].send_text(json.dumps({
+                                "type": "audio_chunk",
+                                "data": audio_b64
+                            }))
+                        continue
+                    
+                    # Handle text/JSON messages
                     data = json.loads(message)
                     msg_type = data.get("type", "")
                     
@@ -111,7 +124,7 @@ class ServerAudioManager:
                             "data": data
                         }))
                     
-                    # Handle audio specifically
+                    # Handle audio specifically (legacy format)
                     if msg_type == "audio" and data.get("format") == "raw":
                         audio_data = data.get("data", "")
                         if audio_data and call_id in self.client_connections:
@@ -122,6 +135,7 @@ class ServerAudioManager:
                             }))
                             
                 except json.JSONDecodeError:
+                    # Skip non-JSON messages
                     continue
                     
         except websockets.exceptions.ConnectionClosed:
