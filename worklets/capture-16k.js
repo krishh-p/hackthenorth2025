@@ -35,7 +35,7 @@ class Capture16kProcessor extends AudioWorkletProcessor {
     const pcm16 = this._downsampleTo16k(merged);
 
     // Keep no remnant (simple integral ratio path); if non-integral, keep fractional remainder
-    // For 48k->16k, ratio=3 so we're fine. If your context is 44.1k, consider a better resampler.
+    // For 48k->16k, ratio=3 so we're fine
     this._remnant = new Float32Array(0);
 
     this.port.postMessage(pcm16.buffer, [pcm16.buffer]);

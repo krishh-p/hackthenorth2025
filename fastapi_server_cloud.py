@@ -301,18 +301,6 @@ async def demo_page():
                 cursor: not-allowed;
             }
             
-            .test-btn {
-                background: #1a1a1a;
-                color: #888888;
-                border: 1px solid #333333;
-                font-size: 13px;
-            }
-            .test-btn:hover {
-                background: #222222;
-                color: #aaaaaa;
-                border-color: #444444;
-                transform: translateY(-1px);
-            }
             
             .messages {
                 background: #0a0a0a;
@@ -372,9 +360,6 @@ async def demo_page():
                 <button id="recordBtn" class="record-btn btn" onclick="startRecording()" disabled>
                     Start Recording
                 </button>
-                <button id="testAudioBtn" class="test-btn btn" onclick="testAudio()">
-                    Test Audio
-                </button>
             </div>
             
             <div class="messages" id="messages">
@@ -415,22 +400,16 @@ async def demo_page():
                 if (audioContext.state === 'suspended') audioContext.resume();
             }
             
-            // Professional jitter buffer for smooth playback
+            // Audio playback with jitter buffer
             function schedulePcm16(base64Data) {
                 try {
                     ensureAudioCtx();
-                    console.log('🔊 Playing audio chunk, context state:', audioContext.state);
-
                     // decode base64 -> Int16Array (PCM16 @ 16k)
                     const bin = atob(base64Data);
                     const bytes = new Uint8Array(bin.length);
                     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-                    if (bytes.length % 2 !== 0) {
-                        console.warn('⚠️ Invalid audio data length');
-                        return;
-                    }
+                    if (bytes.length % 2 !== 0) return;
                     const pcm16 = new Int16Array(bytes.buffer);
-                    console.log('📊 Audio samples:', pcm16.length);
 
                     // Convert to Float32 for AudioBuffer
                     const float = new Float32Array(pcm16.length);
@@ -460,49 +439,13 @@ async def demo_page():
                     src.start(playhead);
                     playhead += dur;
                     
-                    console.log('✅ Audio scheduled at', playhead, 'duration:', dur);
-                    // Removed continuous audio chunk messages for cleaner UI
+                    // Audio scheduled successfully
                 } catch (error) {
                     console.error('❌ Audio playback error:', error);
                     addMessage('🔊 Audio error: ' + error.message);
                 }
             }
             
-            function testAudio() {
-                try {
-                    ensureAudioCtx();
-                    addMessage('🔊 Testing audio system...');
-                    
-                    // Generate a simple 440Hz sine wave (A note) for 1 second
-                    const sampleRate = 16000;
-                    const duration = 1.0; // 1 second
-                    const samples = sampleRate * duration;
-                    const buffer = audioContext.createBuffer(1, samples, sampleRate);
-                    const channelData = buffer.getChannelData(0);
-                    
-                    // Generate sine wave
-                    for (let i = 0; i < samples; i++) {
-                        channelData[i] = Math.sin(2 * Math.PI * 440 * i / sampleRate) * 0.3; // 440Hz at 30% volume
-                    }
-                    
-                    // Create and play the test sound
-                    const source = audioContext.createBufferSource();
-                    source.buffer = buffer;
-                    
-                    const gainNode = audioContext.createGain();
-                    gainNode.gain.value = 2.0; // 2x volume
-                    
-                    source.connect(gainNode);
-                    gainNode.connect(audioContext.destination);
-                    
-                    source.start();
-                    
-                    addMessage('✅ Test sound played! If you heard a tone, audio is working.');
-                } catch (error) {
-                    console.error('❌ Test audio failed:', error);
-                    addMessage('❌ Audio test failed: ' + error.message);
-                }
-            }
             
             function connect() {
                 const connectBtn = document.getElementById('connectBtn');
@@ -567,7 +510,7 @@ async def demo_page():
                 }
             }
             
-            // Professional AudioWorklet-based recording with fallback
+            // AudioWorklet-based recording with fallback
             async function startRecording() {
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({
@@ -585,7 +528,6 @@ async def demo_page():
                     
                     // Try AudioWorklet first
                     try {
-                        console.log('🎤 Loading AudioWorklet...');
                         await audioContext.audioWorklet.addModule('/worklets/capture-16k.js');
                         
                         const src = audioContext.createMediaStreamSource(stream);
@@ -594,7 +536,6 @@ async def demo_page():
                         
                         worklet.port.onmessage = (ev) => {
                             if (ws && ws.readyState === WebSocket.OPEN) {
-                                console.log('🎤 Sending mic data (AudioWorklet), size:', ev.data.byteLength);
                                 ws.send(ev.data);
                             }
                         };
@@ -619,7 +560,7 @@ async def demo_page():
                                     pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
                                 }
                                 
-                                console.log('🎤 Sending mic data (ScriptProcessor), size:', pcm16.byteLength);
+                                // Send PCM data to server
                                 ws.send(pcm16.buffer);
                             }
                         };
