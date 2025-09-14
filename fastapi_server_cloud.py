@@ -158,250 +158,223 @@ async def demo_page():
     <head>
         <title>Voicebot Demo - Hack the North 2025</title>
         <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            
             body { 
-                font-family: 'Segoe UI', sans-serif; 
-                max-width: 900px; 
-                margin: 30px auto; 
-                padding: 20px;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background: #0a0a0a;
+                color: #ffffff;
                 min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                line-height: 1.6;
             }
+            
             .container {
-                background: rgba(255,255,255,0.1);
-                padding: 40px;
-                border-radius: 20px;
-                backdrop-filter: blur(10px);
-                box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+                max-width: 420px;
+                width: 90%;
+                background: #111111;
+                border: 1px solid #222222;
+                border-radius: 12px;
+                padding: 32px;
+                box-shadow: 0 4px 24px rgba(0,0,0,0.4);
             }
+            
             h1 { 
                 text-align: center; 
-                margin-bottom: 30px;
-                font-size: 3em;
-                text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-                background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57);
-                background-size: 300% 300%;
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
-                animation: gradientShift 3s ease infinite;
+                margin-bottom: 8px;
+                font-size: 20px;
+                font-weight: 600;
+                color: #ffffff;
+                letter-spacing: -0.01em;
             }
-            @keyframes gradientShift {
-                0% { background-position: 0% 50%; }
-                50% { background-position: 100% 50%; }
-                100% { background-position: 0% 50%; }
-            }
-            .status { 
-                padding: 20px; 
-                margin: 20px 0; 
-                border-radius: 15px; 
-                font-weight: bold;
+            
+            .subtitle {
                 text-align: center;
-                transition: all 0.3s ease;
-                font-size: 1.2em;
+                margin-bottom: 32px;
+                color: #888888;
+                font-size: 14px;
+                font-weight: 400;
             }
+            
+            .status { 
+                padding: 12px 16px; 
+                margin-bottom: 24px; 
+                border-radius: 8px; 
+                font-weight: 500;
+                text-align: center;
+                transition: all 0.2s ease;
+                font-size: 14px;
+            }
+            
             .status.connected { 
-                background: linear-gradient(45deg, #4CAF50, #45a049);
-                box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+                background: #0d1f0d;
+                border: 1px solid #22c55e;
+                color: #4ade80;
             }
+            
             .status.disconnected { 
-                background: linear-gradient(45deg, #f44336, #d32f2f);
-                box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3);
+                background: #1f0d0d;
+                border: 1px solid #ef4444;
+                color: #f87171;
             }
+            
             .status.speaking { 
-                background: linear-gradient(45deg, #ff9800, #f57c00);
-                box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3);
-                animation: pulse 1.5s infinite;
+                background: #1f1a0d;
+                border: 1px solid #f59e0b;
+                color: #fbbf24;
+                animation: pulse 2s infinite;
             }
+            
             @keyframes pulse {
-                0% { transform: scale(1); }
-                50% { transform: scale(1.02); }
-                100% { transform: scale(1); }
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.8; }
             }
             
             .controls {
                 display: flex;
-                justify-content: center;
-                gap: 20px;
-                margin: 30px 0;
-                flex-wrap: wrap;
+                flex-direction: column;
+                gap: 12px;
+                margin-bottom: 24px;
             }
             
-            button { 
-                padding: 15px 30px; 
-                font-size: 18px; 
+            .btn { 
+                padding: 14px 20px; 
+                font-size: 14px; 
                 border: none; 
-                border-radius: 50px; 
+                border-radius: 8px; 
                 cursor: pointer;
-                transition: all 0.3s ease;
-                font-weight: bold;
-                text-transform: uppercase;
-                letter-spacing: 1px;
-                min-width: 150px;
+                transition: all 0.2s ease;
+                font-weight: 500;
+                position: relative;
+                overflow: hidden;
             }
             
             .connect-btn {
-                background: linear-gradient(45deg, #4CAF50, #45a049);
-                color: white;
+                background: #ffffff;
+                color: #000000;
             }
             .connect-btn:hover:not(:disabled) {
-                transform: translateY(-3px);
-                box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+                background: #f5f5f5;
+                transform: translateY(-1px);
             }
             .connect-btn:disabled {
-                background: #666;
+                background: #333333;
+                color: #666666;
                 cursor: not-allowed;
                 transform: none;
             }
             
+            .disconnect-btn {
+                background: #1a1a1a;
+                color: #ffffff;
+                border: 1px solid #333333;
+            }
+            .disconnect-btn:hover:not(:disabled) {
+                background: #222222;
+                border-color: #444444;
+                transform: translateY(-1px);
+            }
+            .disconnect-btn:disabled {
+                background: #111111;
+                color: #555555;
+                border-color: #222222;
+                cursor: not-allowed;
+            }
+            
             .record-btn {
-                background: linear-gradient(45deg, #ff4444, #cc0000);
-                color: white;
+                background: #ef4444;
+                color: #ffffff;
             }
             .record-btn:hover:not(:disabled) {
-                transform: translateY(-3px);
-                box-shadow: 0 6px 20px rgba(255, 68, 68, 0.4);
+                background: #dc2626;
+                transform: translateY(-1px);
             }
             .record-btn:disabled {
-                background: #666;
+                background: #333333;
+                color: #666666;
                 cursor: not-allowed;
             }
             
             .test-btn {
-                background: #ff6b35;
-                color: white;
-                border: none;
-                padding: 12px 24px;
-                border-radius: 8px;
-                cursor: pointer;
-                font-size: 16px;
-                transition: all 0.3s ease;
+                background: #1a1a1a;
+                color: #888888;
+                border: 1px solid #333333;
+                font-size: 13px;
             }
-            
             .test-btn:hover {
-                background: #e55a2b;
-                transform: translateY(-2px);
-            }
-            
-            .disconnect-btn {
-                background: linear-gradient(45deg, #666666, #555555);
-                color: white;
-                border: none;
-                padding: 15px 30px;
-                border-radius: 50px;
-                cursor: pointer;
-                font-size: 18px;
-                font-weight: bold;
-                transition: all 0.3s ease;
-                text-transform: uppercase;
-                letter-spacing: 1px;
-                min-width: 150px;
-            }
-            
-            .disconnect-btn:hover:not(:disabled) {
-                transform: translateY(-3px);
-                box-shadow: 0 6px 20px rgba(102, 102, 102, 0.4);
-            }
-            
-            .disconnect-btn:disabled {
-                background: #444;
-                cursor: not-allowed;
-                transform: none;
+                background: #222222;
+                color: #aaaaaa;
+                border-color: #444444;
+                transform: translateY(-1px);
             }
             
             .messages {
-                background: rgba(0,0,0,0.3);
-                padding: 25px;
-                border-radius: 15px;
-                max-height: 400px;
-                overflow-y: auto;
-                margin-top: 30px;
-                border: 1px solid rgba(255,255,255,0.1);
-            }
-            .message {
-                margin: 12px 0;
-                padding: 10px 15px;
+                background: #0a0a0a;
+                border: 1px solid #222222;
+                padding: 16px;
                 border-radius: 8px;
-                background: rgba(255,255,255,0.1);
-                border-left: 4px solid #4CAF50;
+                max-height: 200px;
+                overflow-y: auto;
+                font-size: 13px;
             }
             
-            .hero {
-                text-align: center;
-                margin: 30px 0;
-                padding: 25px;
-                background: rgba(255,255,255,0.1);
-                border-radius: 15px;
-                border: 1px solid rgba(255,255,255,0.2);
-            }
-            .hero h2 {
-                margin-bottom: 15px;
-                font-size: 1.8em;
-            }
-            .hero p {
-                font-size: 1.1em;
-                opacity: 0.9;
+            .message {
+                padding: 6px 0;
+                color: #cccccc;
+                border-bottom: 1px solid #1a1a1a;
+                line-height: 1.4;
             }
             
-            .feature-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-                gap: 20px;
-                margin: 30px 0;
+            .message:last-child {
+                border-bottom: none;
             }
-            .feature {
-                background: rgba(255,255,255,0.1);
-                padding: 20px;
-                border-radius: 15px;
-                text-align: center;
-                border: 1px solid rgba(255,255,255,0.2);
+            
+            .messages::-webkit-scrollbar {
+                width: 4px;
             }
-            .feature h3 {
-                margin-bottom: 10px;
-                font-size: 1.3em;
+            
+            .messages::-webkit-scrollbar-track {
+                background: #111111;
+            }
+            
+            .messages::-webkit-scrollbar-thumb {
+                background: #333333;
+                border-radius: 2px;
+            }
+            
+            .messages::-webkit-scrollbar-thumb:hover {
+                background: #444444;
             }
         </style>
     </head>
     <body>
         <div class="container">
-            <h1>🎤 AI Voice Assistant</h1>
-            
-            <div class="hero">
-                <h2>🚀 Next-Generation Voice AI</h2>
-                <p>Experience seamless voice interaction powered by advanced AI technology</p>
-            </div>
+            <h1>AI Voice Assistant</h1>
+            <div class="subtitle">Professional voice AI for seamless conversations</div>
             
             <div id="status" class="status disconnected">
-                🔴 Ready to Connect
+                Ready to Connect
             </div>
             
             <div class="controls">
-                <button id="connectBtn" class="connect-btn" onclick="connect()">
-                    Connect to AI
+                <button id="connectBtn" class="connect-btn btn" onclick="connect()">
+                    Connect
                 </button>
-                <button id="disconnectBtn" class="disconnect-btn" onclick="disconnect()" disabled>
+                <button id="disconnectBtn" class="disconnect-btn btn" onclick="disconnect()" disabled>
                     Disconnect
                 </button>
-                <button id="recordBtn" class="record-btn" onclick="startRecording()" disabled>
+                <button id="recordBtn" class="record-btn btn" onclick="startRecording()" disabled>
                     Start Recording
                 </button>
-                <button id="testAudioBtn" class="test-btn" onclick="testAudio()">
-                    🔊 Test Audio
+                <button id="testAudioBtn" class="test-btn btn" onclick="testAudio()">
+                    Test Audio
                 </button>
-            </div>
-            
-            <div class="feature-grid">
-                <div class="feature">
-                    <h3>🎯 Real-time Processing</h3>
-                    <p>Instant voice recognition and response</p>
-                </div>
-                <div class="feature">
-                    <h3>🧠 Smart AI</h3>
-                    <p>Advanced natural language understanding</p>
-                </div>
-                <div class="feature">
-                    <h3>🔊 Clear Audio</h3>
-                    <p>High-quality voice synthesis</p>
-                </div>
             </div>
             
             <div class="messages" id="messages">
