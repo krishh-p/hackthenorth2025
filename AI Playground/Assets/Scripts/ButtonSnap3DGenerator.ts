@@ -48,9 +48,6 @@ export class ButtonSnap3DGenerator extends BaseScriptComponent {
 
     @input
     private camera: SceneObject;
-
-    @input
-    public objectsParent: SceneObject;
     @ui.group_end
 
     private pinchButton: PinchButton;
@@ -80,11 +77,6 @@ export class ButtonSnap3DGenerator extends BaseScriptComponent {
 
         if (!this.camera) {
             print("ERROR: ButtonSnap3DGenerator requires a camera SceneObject to be assigned");
-            return;
-        }
-
-        if (!this.objectsParent) {
-            print("ERROR: ButtonSnap3DGenerator requires an objectsParent SceneObject to be assigned");
             return;
         }
 
@@ -173,7 +165,7 @@ export class ButtonSnap3DGenerator extends BaseScriptComponent {
 
         try {
             // Create the 3D object first
-            const objectId = await this.snap3DFactory.createInteractable3DObject(prompt, spawnPosition, this.objectsParent);
+            const objectId = await this.snap3DFactory.createInteractable3DObject(prompt, spawnPosition);
             print(`✓ Generated object ${index + 1}: ${prompt}`);
 
             // Create anchor for the object
