@@ -509,16 +509,32 @@ async def demo_page():
                     const data = JSON.parse(event.data);
                     
                     if (data.type === 'audio_from_vapi') {
-                        addMessage('Received audio from Vapi');
-                        // Play the audio
+                        // Play the audio (removed spam log)
                         playAudioFromBase64(data.data);
                     } else if (data.type === 'vapi_connected') {
                         addMessage('🎉 Connected to Vapi! You can now speak.');
                         updateStatus('Connected to Vapi - Ready to chat!', true);
                     } else if (data.type === 'vapi_error') {
                         addMessage('❌ Vapi Error: ' + data.error);
+                    } else if (data.type === 'message_from_vapi') {
+                        // Only log important messages
+                        const msgData = data.data;
+                        if (msgData.type === 'speech-update') {
+                            if (msgData.status === 'started') {
+                                addMessage('🎤 AI is speaking...');
+                            } else if (msgData.status === 'ended') {
+                                addMessage('✅ AI finished speaking');
+                            }
+                        } else if (msgData.type === 'status-update') {
+                            if (msgData.status === 'ended') {
+                                addMessage('📞 Call ended: ' + msgData.endedReason);
+                            }
+                        }
                     } else {
-                        addMessage('Received: ' + JSON.stringify(data));
+                        // Log other important messages only
+                        if (data.type !== 'connected') {
+                            addMessage('Received: ' + JSON.stringify(data));
+                        }
                     }
                 };
                 
@@ -562,35 +578,49 @@ async def demo_page():
                         }
                     });
                     
-                    mediaRecorder = new MediaRecorder(stream, {
-                        mimeType: 'audio/webm;codecs=opus'
-                    });
-                    audioChunks = [];
+                    // Use Web Audio API for better audio processing
+                    if (!window.audioContext) {
+                        window.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    }
                     
-                    // Send audio chunks continuously while recording
-                    mediaRecorder.ondataavailable = function(event) {
-                        if (event.data.size > 0 && ws && ws.readyState === WebSocket.OPEN) {
-                            const reader = new FileReader();
-                            reader.onload = function() {
-                                const base64 = reader.result.split(',')[1];
-                                ws.send(JSON.stringify({
-                                    type: 'audio_to_vapi',
-                                    data: base64
-                                }));
-                            };
-                            reader.readAsDataURL(event.data);
+                    const source = window.audioContext.createMediaStreamSource(stream);
+                    const processor = window.audioContext.createScriptProcessor(4096, 1, 1);
+                    
+                    processor.onaudioprocess = function(e) {
+                        if (ws && ws.readyState === WebSocket.OPEN) {
+                            const inputData = e.inputBuffer.getChannelData(0);
+                            
+                            // Convert float32 to 16-bit PCM
+                            const pcmData = new Int16Array(inputData.length);
+                            for (let i = 0; i < inputData.length; i++) {
+                                // Clamp to [-1, 1] and convert to 16-bit
+                                const sample = Math.max(-1, Math.min(1, inputData[i]));
+                                pcmData[i] = sample * 32767;
+                            }
+                            
+                            // Convert to base64
+                            const bytes = new Uint8Array(pcmData.buffer);
+                            let binary = '';
+                            for (let i = 0; i < bytes.length; i++) {
+                                binary += String.fromCharCode(bytes[i]);
+                            }
+                            const base64 = btoa(binary);
+                            
+                            ws.send(JSON.stringify({
+                                type: 'audio_to_vapi',
+                                data: base64
+                            }));
                         }
-                        audioChunks.push(event.data);
                     };
                     
-                    mediaRecorder.onstop = function() {
-                        addMessage('Recording stopped');
-                        // Stop all tracks to release microphone
-                        stream.getTracks().forEach(track => track.stop());
-                    };
+                    source.connect(processor);
+                    processor.connect(window.audioContext.destination);
                     
-                    // Start recording with small chunks for real-time streaming
-                    mediaRecorder.start(100); // 100ms chunks
+                    // Store references for cleanup
+                    window.micStream = stream;
+                    window.micProcessor = processor;
+                    window.micSource = source;
+                    
                     document.getElementById('recordBtn').disabled = true;
                     document.getElementById('stopBtn').disabled = false;
                     addMessage('🎤 Recording started - speak now!');
@@ -601,13 +631,29 @@ async def demo_page():
             }
             
             function stopRecording() {
-                if (mediaRecorder) {
-                    mediaRecorder.stop();
-                    document.getElementById('recordBtn').disabled = false;
-                    document.getElementById('stopBtn').disabled = true;
-                    addMessage('Recording stopped');
+                // Clean up Web Audio API components
+                if (window.micProcessor) {
+                    window.micProcessor.disconnect();
+                    window.micProcessor = null;
                 }
+                if (window.micSource) {
+                    window.micSource.disconnect();
+                    window.micSource = null;
+                }
+                if (window.micStream) {
+                    window.micStream.getTracks().forEach(track => track.stop());
+                    window.micStream = null;
+                }
+                
+                document.getElementById('recordBtn').disabled = false;
+                document.getElementById('stopBtn').disabled = true;
+                addMessage('🔇 Recording stopped');
             }
+            
+            // Audio buffering for smooth playback
+            let audioQueue = [];
+            let isPlaying = false;
+            let nextPlayTime = 0;
             
             function playAudioFromBase64(base64Data) {
                 try {
@@ -626,6 +672,9 @@ async def demo_page():
                         window.audioContext = new (window.AudioContext || window.webkitAudioContext)();
                     }
                     
+                    // Skip empty audio chunks
+                    if (pcmData.length === 0) return;
+                    
                     // Create audio buffer (16kHz, mono)
                     const sampleRate = 16000;
                     const audioBuffer = window.audioContext.createBuffer(1, pcmData.length, sampleRate);
@@ -636,16 +685,46 @@ async def demo_page():
                         channelData[i] = pcmData[i] / 32768.0;
                     }
                     
-                    // Create and play audio source
-                    const source = window.audioContext.createBufferSource();
-                    source.buffer = audioBuffer;
-                    source.connect(window.audioContext.destination);
-                    source.start();
+                    // Add to queue for smooth playback
+                    audioQueue.push(audioBuffer);
+                    
+                    // Start playing if not already playing
+                    if (!isPlaying) {
+                        playNextAudioChunk();
+                    }
                     
                 } catch (error) {
                     console.error('Error processing audio:', error);
-                    addMessage('Error processing audio: ' + error.message);
                 }
+            }
+            
+            function playNextAudioChunk() {
+                if (audioQueue.length === 0) {
+                    isPlaying = false;
+                    return;
+                }
+                
+                isPlaying = true;
+                const audioBuffer = audioQueue.shift();
+                
+                // Create and play audio source
+                const source = window.audioContext.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(window.audioContext.destination);
+                
+                // Calculate when to start this chunk
+                const currentTime = window.audioContext.currentTime;
+                const startTime = Math.max(currentTime, nextPlayTime);
+                
+                source.start(startTime);
+                
+                // Calculate when the next chunk should start
+                nextPlayTime = startTime + audioBuffer.duration;
+                
+                // Schedule next chunk
+                source.onended = () => {
+                    playNextAudioChunk();
+                };
             }
             
             // Allow Enter key to send text
