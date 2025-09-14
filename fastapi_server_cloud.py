@@ -577,19 +577,24 @@ async def demo_page():
             
             async function startRecording() {
                 try {
+                    // Request high-quality audio stream with exact Vapi specs
                     const stream = await navigator.mediaDevices.getUserMedia({ 
                         audio: {
-                            sampleRate: 16000,
+                            sampleRate: 48000, // Use browser's native rate, we'll resample
                             channelCount: 1,
                             echoCancellation: true,
                             noiseSuppression: true,
-                            autoGainControl: true
+                            autoGainControl: true,
+                            latency: 0.01 // Request low latency
                         }
                     });
                     
-                    // Initialize audio context
+                    // Initialize audio context with optimal settings
                     if (!window.audioContext) {
-                        window.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        window.audioContext = new (window.AudioContext || window.webkitAudioContext)({
+                            sampleRate: 48000, // Match browser native
+                            latencyHint: 'interactive'
+                        });
                     }
                     
                     // Resume audio context if suspended
@@ -599,45 +604,61 @@ async def demo_page():
                     
                     const source = window.audioContext.createMediaStreamSource(stream);
                     
-                    // Use AudioWorklet if available, fallback to ScriptProcessor
-                    let processor;
+                    // Create resampler to convert 48kHz to 16kHz for Vapi
+                    const resamplerBufferSize = 1024; // Smaller for lower latency
+                    const processor = window.audioContext.createScriptProcessor(resamplerBufferSize, 1, 1);
+                    
                     let audioSentCount = 0;
-                    
-                    if (window.audioContext.audioWorklet) {
-                        // Modern approach - but let's use ScriptProcessor for compatibility
-                    }
-                    
-                    // Use ScriptProcessor with same block size as local version (320 samples)
-                    processor = window.audioContext.createScriptProcessor(512, 1, 1); // Closest to 320
+                    let resampleBuffer = [];
+                    const targetSampleRate = 16000;
+                    const sourceSampleRate = window.audioContext.sampleRate;
+                    const resampleRatio = sourceSampleRate / targetSampleRate;
                     
                     processor.onaudioprocess = function(e) {
                         if (ws && ws.readyState === WebSocket.OPEN) {
                             const inputData = e.inputBuffer.getChannelData(0);
                             
-                            // Convert float32 to 16-bit PCM (same as local version)
-                            const pcmData = new Int16Array(inputData.length);
-                            for (let i = 0; i < inputData.length; i++) {
-                                const sample = Math.max(-1, Math.min(1, inputData[i]));
-                                pcmData[i] = sample * 32767;
+                            // Resample from browser sample rate to 16kHz
+                            const outputLength = Math.floor(inputData.length / resampleRatio);
+                            const resampledData = new Float32Array(outputLength);
+                            
+                            for (let i = 0; i < outputLength; i++) {
+                                const sourceIndex = i * resampleRatio;
+                                const index = Math.floor(sourceIndex);
+                                const fraction = sourceIndex - index;
+                                
+                                // Linear interpolation for better quality
+                                if (index + 1 < inputData.length) {
+                                    resampledData[i] = inputData[index] * (1 - fraction) + inputData[index + 1] * fraction;
+                                } else {
+                                    resampledData[i] = inputData[index];
+                                }
                             }
                             
-                            // Convert to base64 (to send over WebSocket)
-                            const bytes = new Uint8Array(pcmData.buffer);
-                            let binary = '';
-                            for (let i = 0; i < bytes.length; i++) {
-                                binary += String.fromCharCode(bytes[i]);
+                            // Convert float32 to 16-bit PCM with proper scaling
+                            const pcmData = new Int16Array(resampledData.length);
+                            for (let i = 0; i < resampledData.length; i++) {
+                                // Apply soft clipping to prevent distortion
+                                let sample = resampledData[i];
+                                sample = Math.max(-1, Math.min(1, sample));
+                                // Apply slight compression for better voice clarity
+                                sample = sample > 0 ? Math.pow(sample, 0.8) : -Math.pow(-sample, 0.8);
+                                pcmData[i] = Math.round(sample * 32767);
                             }
-                            const base64 = btoa(binary);
+                            
+                            // Efficient binary conversion
+                            const bytes = new Uint8Array(pcmData.buffer);
+                            const base64 = btoa(String.fromCharCode.apply(null, bytes));
                             
                             ws.send(JSON.stringify({
                                 type: 'audio_to_vapi',
                                 data: base64
                             }));
                             
-                            // Debug: Show mic is working
+                            // Reduced debug frequency for performance
                             audioSentCount++;
-                            if (audioSentCount % 30 === 1) { // Every ~1 second
-                                addMessage(`🎤 Mic active (${audioSentCount} chunks sent)`);
+                            if (audioSentCount % 50 === 1) { // Every ~1.5 seconds
+                                addMessage(`🎤 Mic active (${audioSentCount} chunks, ${resampledData.length} samples/chunk)`);
                             }
                         }
                     };
@@ -652,14 +673,7 @@ async def demo_page():
                     
                     document.getElementById('recordBtn').disabled = true;
                     document.getElementById('stopBtn').disabled = false;
-                    addMessage('🎤 Recording started - speak now!');
-                    
-                    // Test if we're getting audio input
-                    setTimeout(() => {
-                        if (audioSentCount === 0) {
-                            addMessage('⚠️ No audio detected - try speaking louder or check microphone permissions');
-                        }
-                    }, 3000);
+                    addMessage(`🎤 Recording started - ${sourceSampleRate}Hz → 16kHz resampling active`);
                     
                 } catch (error) {
                     addMessage('Error accessing microphone: ' + error.message);
@@ -687,82 +701,133 @@ async def demo_page():
                 addMessage('🔇 Recording stopped');
             }
             
-            // Audio buffering for smooth playback
-            let audioQueue = [];
-            let isPlaying = false;
-            let nextPlayTime = 0;
-            
-            function playAudioFromBase64(base64Data) {
-                try {
-                    // Convert base64 to raw PCM data
-                    const binaryString = atob(base64Data);
-                    const bytes = new Uint8Array(binaryString.length);
-                    for (let i = 0; i < binaryString.length; i++) {
-                        bytes[i] = binaryString.charCodeAt(i);
+            // Professional-grade audio streaming system
+            class AudioStreamer {
+                constructor() {
+                    this.audioQueue = [];
+                    this.isPlaying = false;
+                    this.nextPlayTime = 0;
+                    this.bufferTime = 0.05; // 50ms buffer for smooth playback
+                    this.maxQueueSize = 15; // Prevent memory buildup
+                    this.sampleRate = 16000;
+                    this.gainNode = null;
+                    this.setupAudioProcessing();
+                }
+                
+                setupAudioProcessing() {
+                    if (!window.audioContext) return;
+                    
+                    // Create gain node for volume control and dynamics
+                    this.gainNode = window.audioContext.createGain();
+                    this.gainNode.gain.value = 1.2; // Slight boost for clarity
+                    this.gainNode.connect(window.audioContext.destination);
+                }
+                
+                addAudioChunk(base64Data) {
+                    try {
+                        // Prevent queue overflow for memory efficiency
+                        if (this.audioQueue.length > this.maxQueueSize) {
+                            this.audioQueue.shift(); // Remove oldest chunk
+                        }
+                        
+                        // Convert base64 to PCM data
+                        const binaryString = atob(base64Data);
+                        const bytes = new Uint8Array(binaryString.length);
+                        for (let i = 0; i < binaryString.length; i++) {
+                            bytes[i] = binaryString.charCodeAt(i);
+                        }
+                        
+                        // Ensure valid PCM data length (must be even for 16-bit samples)
+                        if (bytes.length % 2 !== 0 || bytes.length === 0) return;
+                        
+                        const pcmData = new Int16Array(bytes.buffer);
+                        
+                        // Initialize audio context with optimal settings
+                        if (!window.audioContext) {
+                            window.audioContext = new (window.AudioContext || window.webkitAudioContext)({
+                                latencyHint: 'interactive',
+                                sampleRate: 48000
+                            });
+                            this.setupAudioProcessing();
+                        }
+                        
+                        if (window.audioContext.state === 'suspended') {
+                            window.audioContext.resume();
+                        }
+                        
+                        // Create high-quality audio buffer
+                        const audioBuffer = window.audioContext.createBuffer(1, pcmData.length, this.sampleRate);
+                        const channelData = audioBuffer.getChannelData(0);
+                        
+                        // Convert PCM to float32 with proper normalization and light processing
+                        for (let i = 0; i < pcmData.length; i++) {
+                            let sample = pcmData[i] / 32768.0;
+                            // Apply soft limiting to prevent clipping
+                            sample = Math.max(-0.95, Math.min(0.95, sample));
+                            channelData[i] = sample;
+                        }
+                        
+                        this.audioQueue.push(audioBuffer);
+                        
+                        // Start playback if not already running
+                        if (!this.isPlaying && this.audioQueue.length > 0) {
+                            this.startPlayback();
+                        }
+                        
+                    } catch (error) {
+                        console.error('Error processing audio chunk:', error);
+                    }
+                }
+                
+                startPlayback() {
+                    if (this.audioQueue.length === 0) return;
+                    
+                    this.isPlaying = true;
+                    this.nextPlayTime = window.audioContext.currentTime + this.bufferTime;
+                    this.playNextChunk();
+                }
+                
+                playNextChunk() {
+                    if (this.audioQueue.length === 0) {
+                        this.isPlaying = false;
+                        return;
                     }
                     
-                    // Convert to 16-bit signed integers
-                    const pcmData = new Int16Array(bytes.buffer);
+                    const audioBuffer = this.audioQueue.shift();
+                    const source = window.audioContext.createBufferSource();
+                    source.buffer = audioBuffer;
                     
-                    // Create Web Audio API context if not exists
-                    if (!window.audioContext) {
-                        window.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    // Connect through gain node for better control
+                    if (this.gainNode) {
+                        source.connect(this.gainNode);
+                    } else {
+                        source.connect(window.audioContext.destination);
                     }
                     
-                    // Skip empty audio chunks
-                    if (pcmData.length === 0) return;
+                    // Precise timing calculation
+                    const currentTime = window.audioContext.currentTime;
+                    const startTime = Math.max(currentTime + 0.001, this.nextPlayTime);
                     
-                    // Create audio buffer (16kHz, mono)
-                    const sampleRate = 16000;
-                    const audioBuffer = window.audioContext.createBuffer(1, pcmData.length, sampleRate);
-                    const channelData = audioBuffer.getChannelData(0);
+                    source.start(startTime);
+                    this.nextPlayTime = startTime + audioBuffer.duration;
                     
-                    // Convert PCM data to float32 (-1.0 to 1.0)
-                    for (let i = 0; i < pcmData.length; i++) {
-                        channelData[i] = pcmData[i] / 32768.0;
-                    }
-                    
-                    // Add to queue for smooth playback
-                    audioQueue.push(audioBuffer);
-                    
-                    // Start playing if not already playing
-                    if (!isPlaying) {
-                        playNextAudioChunk();
-                    }
-                    
-                } catch (error) {
-                    console.error('Error processing audio:', error);
+                    // Schedule next chunk with minimal latency
+                    const scheduleDelay = Math.max(5, (audioBuffer.duration * 1000) - 20);
+                    setTimeout(() => this.playNextChunk(), scheduleDelay);
+                }
+                
+                clear() {
+                    this.audioQueue = [];
+                    this.isPlaying = false;
+                    this.nextPlayTime = 0;
                 }
             }
             
-            function playNextAudioChunk() {
-                if (audioQueue.length === 0) {
-                    isPlaying = false;
-                    nextPlayTime = window.audioContext.currentTime;
-                    return;
-                }
-                
-                isPlaying = true;
-                const audioBuffer = audioQueue.shift();
-                
-                // Create and play audio source
-                const source = window.audioContext.createBufferSource();
-                source.buffer = audioBuffer;
-                source.connect(window.audioContext.destination);
-                
-                // Calculate when to start this chunk
-                const currentTime = window.audioContext.currentTime;
-                const startTime = Math.max(currentTime + 0.01, nextPlayTime); // Small buffer
-                
-                source.start(startTime);
-                
-                // Calculate when the next chunk should start
-                nextPlayTime = startTime + audioBuffer.duration;
-                
-                // Schedule next chunk immediately to avoid gaps
-                setTimeout(() => {
-                    playNextAudioChunk();
-                }, (audioBuffer.duration * 1000) - 50); // Start 50ms before current ends
+            // Initialize the audio streamer
+            const audioStreamer = new AudioStreamer();
+            
+            function playAudioFromBase64(base64Data) {
+                audioStreamer.addAudioChunk(base64Data);
             }
             
             // Allow Enter key to send text
