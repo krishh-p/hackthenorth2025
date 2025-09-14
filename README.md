@@ -1,4 +1,4 @@
-# Train in a Snap!  
+# Train in a Snap! 👓🔥🗣️  
 
 **Immersive AR training powered by Snapchat Spectacles, Snap APIs, and Vapi Voice AI**  
 
@@ -26,6 +26,8 @@ This results in a **hands-free, interactive training experience** blending gener
 2. **Snap3D API** to dynamically generate scenario-specific 3D objects.  
 3. **Vapi Voicebot API** to provide natural, real-time spoken instructions.  
 4. Backend **broadcasts** that instruction back to the Spectacles over the same **WebSocket**.
+5. Flask API for communication between Vapi and Spectacles
+6. Heroku to host the backend microservice
 
 ---
 
@@ -55,45 +57,6 @@ This results in a **hands-free, interactive training experience** blending gener
 - Add **multi-user AR** so teams can train together.  
 - Smarter AI guidance that adapts dynamically to user performance.  
 - Enterprise use cases: onboarding, tutorials, and industrial training.  
-
----
-
-## 🎤 Voicebot Component
-
-The **Vapi Voicebot** is a standalone web application that provides the voice AI functionality for our AR training system. It features:
-
-### ✨ Features
-- **Real-time voice conversations** with AI
-- **Professional audio processing** using Web Audio API  
-- **Clean, minimalist UI** with dark theme
-- **AudioWorklet-based capture** for high-quality microphone input
-- **Jitter buffer playback** for smooth AI voice output
-- **WebSocket-based streaming** for low latency
-- **Cloud-ready deployment** on Heroku
-
-### 🚀 Live Demo
-**[Try the Voicebot](https://hackthenorth2025-voicebot-fdeea2d593ac.herokuapp.com/)**
-
-### 🏗️ Technical Architecture
-```
-[Browser Audio] → [WebSocket] → [FastAPI Server] → [Vapi WebSocket] → [AI Response] → [Browser Audio]
-```
-
-- **Frontend**: Vanilla JavaScript with Web Audio API
-- **Backend**: FastAPI with WebSocket proxy  
-- **AI Service**: Vapi for voice processing
-- **Audio**: 16kHz PCM16 mono format
-
-### 📁 Voicebot Structure
-```
-voicebot/
-├── fastapi_server_cloud.py    # Main server application
-├── worklets/
-│   └── capture-16k.js         # AudioWorklet for microphone capture
-├── requirements.txt           # Python dependencies
-├── Procfile                   # Heroku deployment config
-└── README.md                  # This file
-```
 
 ---
 
