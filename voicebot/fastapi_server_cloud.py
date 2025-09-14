@@ -192,8 +192,8 @@ class ServerAudioManager:
             logger.error(f"Failed to connect to Vapi: {e}")
             return False
     
-    async def send_ar_event_to_vapi(self, call_id: str, event_type: str, object_name: str, result: str = "success", should_speak: bool = False, additional_context: Dict = None):
-        """Send AR event context to Vapi assistant with enhanced validation info"""
+    async def send_ar_event_to_vapi(self, call_id: str, event_type: str, object_name: str, result: str = "success", should_speak: bool = False):
+        """Send AR event context to Vapi assistant"""
         if call_id not in self.vapi_connections:
             logger.warning(f"No Vapi connection found for call {call_id}")
             return False
@@ -203,27 +203,11 @@ class ServerAudioManager:
         try:
             # 1) Silent background context update - always send this
             timestamp = time.strftime("%H:%M")
-            
-            # Build enhanced system message with validation context
-            base_content = f"AR_EVENT: {event_type} object='{object_name}' result={result} at {timestamp}"
-            
-            if additional_context:
-                if "step" in additional_context:
-                    base_content += f" step={additional_context['step']}"
-                if "expected_action" in additional_context:
-                    base_content += f" expected_action='{additional_context['expected_action']}'"
-                if "expected_objects" in additional_context:
-                    base_content += f" expected_objects={additional_context['expected_objects']}"
-                if "consecutive_errors" in additional_context:
-                    base_content += f" consecutive_errors={additional_context['consecutive_errors']}"
-                if "current_description" in additional_context:
-                    base_content += f" current_instruction='{additional_context['current_description']}'"
-            
             system_message = {
                 "type": "add-message",
                 "message": {
                     "role": "system", 
-                    "content": base_content
+                    "content": f"AR_EVENT: {event_type} object='{object_name}' result={result} at {timestamp}"
                 }
             }
             
@@ -232,7 +216,7 @@ class ServerAudioManager:
             
             # 2) Optional immediate speech response
             if should_speak:
-                response_message = self._generate_ar_response(event_type, object_name, result, additional_context)
+                response_message = self._generate_ar_response(event_type, object_name, result)
                 if response_message:
                     say_message = {
                         "type": "say",
@@ -247,47 +231,12 @@ class ServerAudioManager:
             logger.error(f"Failed to send AR event to Vapi: {e}")
             return False
     
-    def _generate_ar_response(self, event_type: str, object_name: str, result: str, additional_context: Dict = None) -> str:
-        """Generate contextual speech responses for AR events with validation awareness"""
-        
-        # Handle incorrect interactions
-        if event_type == "incorrect_interaction":
-            if additional_context and "expected_objects" in additional_context:
-                expected_objects = additional_context["expected_objects"]
-                consecutive_errors = additional_context.get("consecutive_errors", 0)
-                
-                if consecutive_errors == 1:
-                    return f"That's not quite right. You need to find the {', '.join(expected_objects)} for this step."
-                elif consecutive_errors == 2:
-                    return f"Remember, for this step you should be looking for the {', '.join(expected_objects)}. Take your time and look around."
-                else:
-                    return f"Let me help you. You're currently on step {additional_context.get('step', '?')}. You need to {additional_context.get('current_description', 'continue with the training')}."
-            else:
-                return "That's not the correct object for this step. Look around for the right item to continue."
-        
-        # Handle correct interactions
-        if event_type == "correct_interaction" and result == "success":
-            step = additional_context.get("step", 1) if additional_context else 1
-            
-            # Step-specific positive feedback
-            if step == 1 and "fire extinguisher" in object_name.lower():
-                return "Excellent! You found the fire extinguisher. Now pull the pin and aim at the base of the fire."
-            elif step == 2 and "fire extinguisher" in object_name.lower():
-                return "Perfect! Pin removed. Now aim the extinguisher at the base of the fire and squeeze the handle."
-            elif step == 3 and "fire extinguisher" in object_name.lower():
-                return "Good aim! Now squeeze the handle and sweep side to side to extinguish the flames."
-            elif step == 4 and ("fire" in object_name.lower() or "flame" in object_name.lower()):
-                return "Outstanding! The fire is extinguished. Now pull the fire alarm to alert others in the building."
-            elif step == 5 and "fire alarm" in object_name.lower():
-                return "Perfect! You've pulled the fire alarm. Everyone will now be alerted to evacuate safely."
-            else:
-                return f"Great job with the {object_name}! Keep following the emergency procedures."
-        
-        # Legacy support for older event types
-        if result != "success" and event_type != "incorrect_interaction":
+    def _generate_ar_response(self, event_type: str, object_name: str, result: str) -> str:
+        """Generate appropriate speech response for AR events"""
+        if result != "success":
             return f"I noticed you had trouble with the {object_name}. Let me help guide you."
         
-        # Fallback responses for legacy events
+        # Generate contextual responses based on event type and object
         if event_type == "object_interaction" or event_type == "object_pinched":
             if "fire extinguisher" in object_name.lower():
                 return "Great job grabbing the fire extinguisher! Now pull the pin and aim at the base of the fire."
@@ -300,14 +249,19 @@ class ServerAudioManager:
         
         elif event_type == "pull_extinguisher":
             return "Perfect! You've got the fire extinguisher. Now pull the pin and aim at the base of the fire."
+        
         elif event_type == "pull_pin":
             return "Excellent! Pin removed. Now aim the nozzle at the base of the fire and squeeze the handle."
+        
         elif event_type == "aim_extinguisher":
             return "Good positioning! Now squeeze the handle to discharge the extinguisher."
+        
         elif event_type == "extinguish_fire":
             return "Outstanding! You've successfully extinguished the fire. Great job following proper fire safety procedures."
+        
         elif event_type == "task_complete":
             return "Congratulations! You've completed the fire safety training successfully."
+        
         else:
             return f"I see you completed the {event_type} step. Keep up the good work!"
     
@@ -363,104 +317,13 @@ class ServerAudioManager:
 
 class SnapLensConnectionManager:
     """Manages WebSocket connections for Snap Lens communication"""
-    
+    I now want to push these things to my github repository (@https://github.com/krishh-p/hackthenorth2025.git )
+
+first git pull (there are some remote changes that I didnt incorporate)
     def __init__(self):
         self.connections: Set[WebSocket] = set()
         self.start_time = time.time()
-        self.audio_manager_ref = None  # Reference to ServerAudioManager
-        
-        # Training scenario state tracking
-        self.training_scenarios = {
-            "fire_emergency": {
-                "steps": [
-                    {"step": 1, "expected_objects": ["fire extinguisher"], "action": "grab", "description": "Find and grab the fire extinguisher"},
-                    {"step": 2, "expected_objects": ["fire extinguisher"], "action": "pull_pin", "description": "Pull the pin from the fire extinguisher"},
-                    {"step": 3, "expected_objects": ["fire extinguisher"], "action": "aim", "description": "Aim the extinguisher at the base of the fire"},
-                    {"step": 4, "expected_objects": ["fire", "flame"], "action": "extinguish", "description": "Spray the fire to extinguish it"},
-                    {"step": 5, "expected_objects": ["fire alarm"], "action": "pull", "description": "Pull the fire alarm to alert others"}
-                ]
-            }
-        }
-        
-        # Current training state
-        self.current_scenario = "fire_emergency"
-        self.current_step = 1
-        self.session_state = {
-            "completed_steps": [],
-            "last_correct_action": None,
-            "consecutive_errors": 0
-        }
-    
-    def validate_object_interaction(self, object_name: str, action_type: str = "grab") -> Dict:
-        """Validate if the object interaction matches the current training step"""
-        current_scenario = self.training_scenarios.get(self.current_scenario)
-        if not current_scenario:
-            return {"valid": False, "reason": "No active training scenario"}
-        
-        current_step_info = None
-        for step_info in current_scenario["steps"]:
-            if step_info["step"] == self.current_step:
-                current_step_info = step_info
-                break
-        
-        if not current_step_info:
-            return {"valid": False, "reason": "Invalid training step"}
-        
-        # Normalize object name for comparison
-        object_name_lower = object_name.lower().strip()
-        expected_objects = [obj.lower() for obj in current_step_info["expected_objects"]]
-        
-        # Check if the object matches any expected objects for this step
-        object_match = any(expected_obj in object_name_lower or object_name_lower in expected_obj 
-                          for expected_obj in expected_objects)
-        
-        if object_match:
-            return {
-                "valid": True,
-                "step": self.current_step,
-                "expected_action": current_step_info["action"],
-                "description": current_step_info["description"],
-                "object_matched": object_name
-            }
-        else:
-            return {
-                "valid": False,
-                "reason": f"Wrong object for step {self.current_step}",
-                "expected_objects": current_step_info["expected_objects"],
-                "current_description": current_step_info["description"],
-                "received_object": object_name
-            }
-    
-    def advance_training_step(self):
-        """Advance to the next training step"""
-        self.session_state["completed_steps"].append(self.current_step)
-        self.current_step += 1
-        self.session_state["consecutive_errors"] = 0
-        
-        logger.info(f"Advanced to training step {self.current_step}")
-        
-        # Check if training is complete
-        max_steps = len(self.training_scenarios[self.current_scenario]["steps"])
-        if self.current_step > max_steps:
-            logger.info("Training scenario completed!")
-            return True
-        return False
-    
-    def record_error(self):
-        """Record an incorrect interaction"""
-        self.session_state["consecutive_errors"] += 1
-        logger.warning(f"Training error recorded. Consecutive errors: {self.session_state['consecutive_errors']}")
-    
-    def get_current_step_info(self) -> Dict:
-        """Get information about the current training step"""
-        current_scenario = self.training_scenarios.get(self.current_scenario)
-        if not current_scenario:
-            return {}
-        
-        for step_info in current_scenario["steps"]:
-            if step_info["step"] == self.current_step:
-                return step_info
-        return {}
+        self.audio_manager_ref = None  # Reference to ServerAudioManager for Vapi integration
     
     async def connect(self, websocket: WebSocket):
         """Add a new WebSocket connection"""
@@ -572,110 +435,49 @@ class SnapLensConnectionManager:
         })
     
     async def handle_object_pinched(self, websocket: WebSocket, data: dict):
-        """Handle object pinched events from Snap Lens with validation"""
+        """Handle object pinched events from Snap Lens"""
         object_name = data.get("object_name", "Unknown object")
         position = data.get("position", {})
-        should_speak = data.get("should_speak", True)
+        should_speak = data.get("should_speak", True)  # Default to providing voice feedback
         
         logger.info(f"Object pinched: {object_name} at position {position}")
         
-        # Validate the object interaction against current training step
-        validation_result = self.validate_object_interaction(object_name)
+        # Send AR event to Vapi assistant if available
+        if self.audio_manager_ref:
+            # Try to find an active Vapi connection to send the event to
+            # For now, we'll use the first available connection
+            # In a production app, you'd want to match the specific user/session
+            for call_id in self.audio_manager_ref.vapi_connections.keys():
+                await self.audio_manager_ref.send_ar_event_to_vapi(
+                    call_id=call_id,
+                    event_type="object_interaction",
+                    object_name=object_name,
+                    result="success",
+                    should_speak=should_speak
+                )
+                break  # Send to first active connection for demo
         
-        if validation_result["valid"]:
-            # Correct object interaction
-            logger.info(f"✅ CORRECT INTERACTION: {object_name} matches step {self.current_step}")
-            
-            # Send positive AR event to Vapi assistant
-            if self.audio_manager_ref:
-                for call_id in self.audio_manager_ref.vapi_connections.keys():
-                    await self.audio_manager_ref.send_ar_event_to_vapi(
-                        call_id=call_id,
-                        event_type="correct_interaction",
-                        object_name=object_name,
-                        result="success",
-                        should_speak=should_speak,
-                        additional_context={
-                            "step": self.current_step,
-                            "expected_action": validation_result["expected_action"],
-                            "description": validation_result["description"]
-                        }
-                    )
-                    break
-            
-            # Advance to next training step
-            training_complete = self.advance_training_step()
-            
-            if training_complete:
-                # Send completion message
-                await self.send_to_client(websocket, {
-                    "type": "training_complete",
-                    "status": "completed",
-                    "message": "🎉 Fire emergency training completed successfully!",
-                    "object_name": object_name
-                })
-            else:
-                # Send next step information
-                next_step_info = self.get_current_step_info()
-                await self.send_to_client(websocket, {
-                    "type": "step_advanced",
-                    "status": "correct",
-                    "object_name": object_name,
-                    "current_step": self.current_step,
-                    "next_instruction": next_step_info.get("description", "Continue training"),
-                    "expected_objects": next_step_info.get("expected_objects", [])
-                })
-        else:
-            # Incorrect object interaction
-            logger.warning(f"❌ INCORRECT INTERACTION: {object_name} - {validation_result['reason']}")
-            self.record_error()
-            
-            # Send corrective AR event to Vapi assistant
-            if self.audio_manager_ref:
-                for call_id in self.audio_manager_ref.vapi_connections.keys():
-                    await self.audio_manager_ref.send_ar_event_to_vapi(
-                        call_id=call_id,
-                        event_type="incorrect_interaction",
-                        object_name=object_name,
-                        result="error",
-                        should_speak=should_speak,
-                        additional_context={
-                            "step": self.current_step,
-                            "expected_objects": validation_result.get("expected_objects", []),
-                            "current_description": validation_result.get("current_description", ""),
-                            "consecutive_errors": self.session_state["consecutive_errors"]
-                        }
-                    )
-                    break
-            
-            # Send error feedback to client
-            current_step_info = self.get_current_step_info()
-            await self.send_to_client(websocket, {
-                "type": "interaction_error",
-                "status": "incorrect",
-                "object_name": object_name,
-                "message": f"Wrong object! Expected: {', '.join(validation_result.get('expected_objects', []))}",
-                "current_step": self.current_step,
-                "current_instruction": current_step_info.get("description", ""),
-                "expected_objects": validation_result.get("expected_objects", []),
-                "received_object": object_name,
-                "consecutive_errors": self.session_state["consecutive_errors"]
-            })
-        
-        # Create enhanced broadcast message with validation status
+        # Create the message to broadcast to other clients
         broadcast_message = {
             "type": "object_pinched",
             "object_name": object_name,
             "position": position,
             "timestamp": data.get("timestamp"),
             "client_type": data.get("client_type", "snap_lens"),
-            "validation_status": "correct" if validation_result["valid"] else "incorrect",
-            "current_step": self.current_step,
             "vapi_notified": self.audio_manager_ref is not None
         }
         
         # Broadcast the object pinched event to all other clients
         await self.broadcast(broadcast_message, exclude=websocket)
+        
+        # Send confirmation back to sender
+        await self.send_to_client(websocket, {
+            "type": "object_pinched",
+            "status": "received",
+            "object_name": object_name,
+            "message": f"Object pinched event received: {object_name}",
+            "vapi_notified": self.audio_manager_ref is not None
+        })
     
     async def handle_ar_event(self, websocket: WebSocket, data: dict):
         """Handle general AR events from Snap Lens"""
