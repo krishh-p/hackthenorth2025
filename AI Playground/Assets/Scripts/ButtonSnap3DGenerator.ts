@@ -1,7 +1,6 @@
 import { PinchButton } from "SpectaclesInteractionKit.lspkg/Components/UI/PinchButton/PinchButton";
 import { Snap3DInteractableFactory } from "./Snap3DInteractableFactory";
 import { AnchorComponent } from "Spatial Anchors.lspkg/AnchorComponent";
-import { Anchor } from "Spatial Anchors.lspkg/Anchor";
 
 @component
 export class ButtonSnap3DGenerator extends BaseScriptComponent {
@@ -49,6 +48,8 @@ export class ButtonSnap3DGenerator extends BaseScriptComponent {
 
     private pinchButton: PinchButton;
     private isGenerating: boolean = false;
+
+    public createdObjects: string[] = [];
 
     onAwake() {
         this.pinchButton = this.getSceneObject().getComponent(PinchButton.getTypeName()) as PinchButton;
@@ -141,9 +142,20 @@ export class ButtonSnap3DGenerator extends BaseScriptComponent {
             .then((objectId: string) => {
                 print(`✓ Generated object ${index + 1}: ${prompt}`);
 
+                // Clean up the object ID to remove the success message prefix
+                const cleanPrompt = objectId.replace("Successfully created mesh with prompt: ", "");
+
+                // Create unique ID with timestamp
+                const timestamp = Date.now();
+                const uniqueId = `${timestamp}:${cleanPrompt}`;
+
+                // Add to the list of created objects
+                this.createdObjects.push(uniqueId);
+                print(`Created objects list: [${this.createdObjects.join(", ")}]`);
+
                 // If anchoring is enabled, parent the generated object under the anchored parent
                 if (this.enableAnchoring && this.anchoredParent) {
-                    this.parentGeneratedObject(objectId);
+                    this.parentGeneratedObject(uniqueId);
                 }
 
                 // Wait a moment then generate the next object
