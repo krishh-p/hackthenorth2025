@@ -270,14 +270,30 @@ async def websocket_endpoint(websocket: WebSocket, call_id: str):
     await manager.connect(websocket, call_id)
     
     try:
-        # First, we need to get the Vapi WebSocket URL for this call
-        # In a real implementation, you'd store this when creating the call
-        await websocket.send_text(json.dumps({
-            "type": "connected",
-            "call_id": call_id,
-            "message": "Connected to proxy server",
-            "instructions": "Send audio data as base64 encoded bytes"
-        }))
+        # Get the Vapi WebSocket URL for this call by creating a new session
+        try:
+            call_data = await vapi_service.create_call()
+            vapi_ws_url = call_data.get("transport", {}).get("websocketCallUrl")
+            
+            await websocket.send_text(json.dumps({
+                "type": "connected",
+                "call_id": call_id,
+                "message": "Connected to proxy server",
+                "vapi_url": vapi_ws_url,
+                "instructions": "Connection to Vapi will start automatically"
+            }))
+            
+            # Automatically start Vapi connection
+            if vapi_ws_url:
+                asyncio.create_task(
+                    vapi_service.connect_to_vapi(vapi_ws_url, call_id)
+                )
+            
+        except Exception as e:
+            await websocket.send_text(json.dumps({
+                "type": "error",
+                "message": f"Failed to create Vapi session: {str(e)}"
+            }))
         
         while True:
             try:
@@ -433,15 +449,50 @@ async def demo_page():
                 messages.scrollTop = messages.scrollHeight;
             }
             
-            function connect() {
-                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-                const wsUrl = protocol + '//' + window.location.host + '/ws/demo_call_123';
-                
-                ws = new WebSocket(wsUrl);
+            async function connect() {
+                try {
+                    // First, start a Vapi session
+                    addMessage('Starting Vapi session...');
+                    const response = await fetch('/chat/start', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({})
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (!data.success) {
+                        addMessage('Error starting Vapi session: ' + (data.error || 'Unknown error'));
+                        return;
+                    }
+                    
+                    addMessage('Vapi session created: ' + data.call_id);
+                    
+                    // Connect to WebSocket with real call ID
+                    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                    const wsUrl = protocol + '//' + window.location.host + '/ws/' + data.call_id;
+                    
+                    ws = new WebSocket(wsUrl);
+                    
+                    // Store the Vapi WebSocket URL for connection
+                    window.vapiCallData = data;
+                    
+                } catch (error) {
+                    addMessage('Error: ' + error.message);
+                }
                 
                 ws.onopen = function() {
                     updateStatus('Connected to WebSocket', true);
                     addMessage('Connected to server');
+                    
+                    // Automatically connect to Vapi
+                    if (window.vapiCallData) {
+                        addMessage('Connecting to Vapi...');
+                        ws.send(JSON.stringify({
+                            type: 'connect_to_vapi',
+                            vapi_url: window.vapiCallData.websocket_url // This will be the real Vapi URL
+                        }));
+                    }
                 };
                 
                 ws.onmessage = function(event) {
