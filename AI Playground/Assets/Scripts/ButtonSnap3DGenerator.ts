@@ -50,7 +50,7 @@ export class ButtonSnap3DGenerator extends BaseScriptComponent {
     private camera: SceneObject;
 
     @input
-    private objectsParent: SceneObject;
+    public objectsParent: SceneObject;
     @ui.group_end
 
     private pinchButton: PinchButton;

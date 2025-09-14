@@ -1,0 +1,44 @@
+- !<AssetImportMetadata/98247364-a233-4d23-98a4-bee5cec13799>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> 9876d85a-2974-40c7-8c36-9b5450d3ebbd
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> 9876d85a-2974-40c7-8c36-9b5450d3ebbd
+  PackageType: NotAPackage
+  PackagePolicy: CannotBeUnpacked
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> df24589a-9eed-4655-978c-15d945be17e2
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/df24589a-9eed-4655-978c-15d945be17e2>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: 35ee4a06-e28e-4e55-8e92-e31aee1cc25e
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  CurrentVisibility: Editable
+  MaxVisibility: Editable
+  ScriptInputsHidden:
+    debugText: false
+    serverUrl: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  DefaultScriptInputs:
+    - serverUrl: "ws://localhost:8080"
+      debugText: !<reference.Text> 00000000-0000-0000-0000-000000000000
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - '// @input string serverUrl = "ws://localhost:8080" {"hint":"WebSocket server URL"}'
+    - '// @input Component.Text debugText {"hint":"Text component to display debug info"}'

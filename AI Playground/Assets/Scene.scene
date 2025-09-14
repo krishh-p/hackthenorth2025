@@ -1547,6 +1547,7 @@
   ScriptInputsDefault:
     spawnRadius: true
     spawnHeight: true
+    objectsParent: true
   ScriptTypesDefault:
     {}
   ScriptInputs:
@@ -1563,6 +1564,7 @@
       generateSound: !<reference.AudioTrackAsset> fa9421aa-0b52-43f6-aa63-9290ce06106d
       anchorModule: !<MappingBased.AssignableType_1> 62de5c58-1636-49b1-b7f6-dc42eb76ed68
       camera: !<reference.SceneObject> 00000000-0000-0065-0000-000000000064
+      objectsParent: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
   ScriptTypes:
     "":
       {}

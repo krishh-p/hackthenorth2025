@@ -16,12 +16,12 @@ viewConfig:
     resolutionScale: 1.000000
     viewport: Maximized
     output: Live
-    stereoOutputEye: Right
+    stereoOutputEye: Center
     deviceTypeOverride: Unknown
     tint: true
     screenshot: false
     videoScreenRecord: false
-  cameraType: Back
+  cameraType: Front
 metaInfo:
   hints:
     []
