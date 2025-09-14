@@ -720,130 +720,68 @@ async def demo_page():
                 addMessage('🔇 Recording stopped');
             }
             
-            // True continuous buffer streaming - no chunks, no gaps
-            class ContinuousBufferStreamer {
-                constructor() {
-                    this.continuousBuffer = new Float32Array(0);
-                    this.playbackPosition = 0;
-                    this.isStreaming = false;
-                    this.sampleRate = 16000;
-                    this.scriptProcessor = null;
-                    this.gainNode = null;
-                }
-                
-                addAudioChunk(base64Data) {
-                    try {
-                        // Convert base64 to PCM data
-                        const binaryString = atob(base64Data);
-                        const bytes = new Uint8Array(binaryString.length);
-                        for (let i = 0; i < binaryString.length; i++) {
-                            bytes[i] = binaryString.charCodeAt(i);
-                        }
-                        
-                        if (bytes.length % 2 !== 0 || bytes.length === 0) return;
-                        
-                        const pcmData = new Int16Array(bytes.buffer);
-                        
-                        // Initialize audio context if needed
-                        if (!window.audioContext) {
-                            window.audioContext = new (window.AudioContext || window.webkitAudioContext)({
-                                latencyHint: 'interactive'
-                            });
-                        }
-                        
-                        if (window.audioContext.state === 'suspended') {
-                            window.audioContext.resume();
-                        }
-                        
-                        // Convert PCM to float32 and append to continuous buffer
-                        const newSamples = new Float32Array(pcmData.length);
-                        for (let i = 0; i < pcmData.length; i++) {
-                            let sample = pcmData[i] / 32768.0;
-                            // Apply volume boost and gentle limiting
-                            sample *= 3.0; // 3x volume boost
-                            sample = Math.max(-0.95, Math.min(0.95, sample));
-                            newSamples[i] = sample;
-                        }
-                        
-                        // Append to continuous buffer
-                        const oldBuffer = this.continuousBuffer;
-                        this.continuousBuffer = new Float32Array(oldBuffer.length + newSamples.length);
-                        this.continuousBuffer.set(oldBuffer);
-                        this.continuousBuffer.set(newSamples, oldBuffer.length);
-                        
-                        // Start streaming if not already
-                        if (!this.isStreaming) {
-                            this.startContinuousStream();
-                        }
-                        
-                        // Clean up old data to prevent memory buildup
-                        if (this.continuousBuffer.length > this.sampleRate * 10) { // Keep max 10 seconds
-                            const keepSamples = this.sampleRate * 5; // Keep 5 seconds
-                            const newBuffer = new Float32Array(keepSamples);
-                            newBuffer.set(this.continuousBuffer.slice(-keepSamples));
-                            this.continuousBuffer = newBuffer;
-                            this.playbackPosition = Math.max(0, this.playbackPosition - (this.continuousBuffer.length - keepSamples));
-                        }
-                        
-                    } catch (error) {
-                        console.error('Error processing audio chunk:', error);
-                    }
-                }
-                
-                startContinuousStream() {
-                    if (this.isStreaming || !window.audioContext) return;
-                    
-                    this.isStreaming = true;
-                    
-                    // Create gain node
-                    this.gainNode = window.audioContext.createGain();
-                    this.gainNode.gain.value = 1.0;
-                    this.gainNode.connect(window.audioContext.destination);
-                    
-                    // Create script processor for continuous playback
-                    this.scriptProcessor = window.audioContext.createScriptProcessor(4096, 0, 1);
-                    
-                    this.scriptProcessor.onaudioprocess = (e) => {
-                        const outputBuffer = e.outputBuffer.getChannelData(0);
-                        const outputLength = outputBuffer.length;
-                        
-                        // Fill output buffer from continuous buffer
-                        for (let i = 0; i < outputLength; i++) {
-                            if (this.playbackPosition < this.continuousBuffer.length) {
-                                outputBuffer[i] = this.continuousBuffer[this.playbackPosition];
-                                this.playbackPosition++;
-                            } else {
-                                outputBuffer[i] = 0; // Silence when no data
-                            }
-                        }
-                    };
-                    
-                    this.scriptProcessor.connect(this.gainNode);
-                }
-                
-                clear() {
-                    this.continuousBuffer = new Float32Array(0);
-                    this.playbackPosition = 0;
-                    this.isStreaming = false;
-                    
-                    if (this.scriptProcessor) {
-                        this.scriptProcessor.disconnect();
-                        this.scriptProcessor = null;
-                    }
-                    
-                    if (this.gainNode) {
-                        this.gainNode.disconnect();
-                        this.gainNode = null;
-                    }
-                }
-            }
-            
-            // Initialize the continuous buffer streamer
-            const audioStreamer = new ContinuousBufferStreamer();
-            
+            // Simple, reliable audio playback - back to basics
             function playAudioFromBase64(base64Data) {
-                audioStreamer.addAudioChunk(base64Data);
+                try {
+                    // Convert base64 to PCM data
+                    const binaryString = atob(base64Data);
+                    const bytes = new Uint8Array(binaryString.length);
+                    for (let i = 0; i < binaryString.length; i++) {
+                        bytes[i] = binaryString.charCodeAt(i);
+                    }
+                    
+                    if (bytes.length % 2 !== 0 || bytes.length === 0) return;
+                    
+                    const pcmData = new Int16Array(bytes.buffer);
+                    
+                    // Initialize audio context if needed
+                    if (!window.audioContext) {
+                        window.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    }
+                    
+                    if (window.audioContext.state === 'suspended') {
+                        window.audioContext.resume();
+                    }
+                    
+                    // Create audio buffer with correct sample rate
+                    const sampleRate = 16000; // Vapi sends 16kHz
+                    const audioBuffer = window.audioContext.createBuffer(1, pcmData.length, sampleRate);
+                    const channelData = audioBuffer.getChannelData(0);
+                    
+                    // Convert PCM to float32 with volume boost
+                    for (let i = 0; i < pcmData.length; i++) {
+                        let sample = pcmData[i] / 32768.0;
+                        sample *= 2.0; // 2x volume boost
+                        sample = Math.max(-0.9, Math.min(0.9, sample));
+                        channelData[i] = sample;
+                    }
+                    
+                    // Create source and play immediately
+                    const source = window.audioContext.createBufferSource();
+                    source.buffer = audioBuffer;
+                    
+                    // Create gain node for this chunk
+                    const gainNode = window.audioContext.createGain();
+                    gainNode.gain.value = 1.0;
+                    
+                    // Connect: source -> gain -> destination
+                    source.connect(gainNode);
+                    gainNode.connect(window.audioContext.destination);
+                    
+                    // Play immediately
+                    source.start();
+                    
+                } catch (error) {
+                    console.error('Error playing audio:', error);
+                }
             }
+            
+            // Dummy class for compatibility
+            const audioStreamer = {
+                addAudioChunk: playAudioFromBase64,
+                clear: () => {},
+                stop: () => {}
+            };
             
             // Allow Enter key to send text
             document.getElementById('textInput').addEventListener('keypress', function(e) {
