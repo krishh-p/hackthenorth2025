@@ -720,20 +720,32 @@ async def demo_page():
                 addMessage('🔇 Recording stopped');
             }
             
-            // Reliable audio streaming with smooth playback
-            class ReliableAudioStreamer {
+            // Professional smooth audio streaming system
+            class SmoothAudioStreamer {
                 constructor() {
                     this.audioQueue = [];
                     this.isPlaying = false;
                     this.nextPlayTime = 0;
                     this.sampleRate = 16000;
-                    this.maxQueueSize = 10; // Prevent buildup
+                    this.maxQueueSize = 8; // Smaller queue for less latency
+                    this.bufferTime = 0.2; // 200ms initial buffer for smooth start
+                    this.gainNode = null;
+                    this.setupAudioGraph();
+                }
+                
+                setupAudioGraph() {
+                    if (!window.audioContext) return;
+                    
+                    // Create persistent gain node for consistent volume
+                    this.gainNode = window.audioContext.createGain();
+                    this.gainNode.gain.value = 2.5; // Boost for clarity
+                    this.gainNode.connect(window.audioContext.destination);
                 }
                 
                 addAudioChunk(base64Data) {
                     try {
-                        // Prevent queue overflow
-                        if (this.audioQueue.length > this.maxQueueSize) {
+                        // Prevent queue overflow - keep it lean for smoothness
+                        while (this.audioQueue.length > this.maxQueueSize) {
                             this.audioQueue.shift();
                         }
                         
@@ -752,30 +764,36 @@ async def demo_page():
                         // Initialize audio context if needed
                         if (!window.audioContext) {
                             window.audioContext = new (window.AudioContext || window.webkitAudioContext)({
-                                latencyHint: 'interactive'
+                                latencyHint: 'interactive',
+                                sampleRate: 48000
                             });
+                            this.setupAudioGraph();
                         }
                         
                         if (window.audioContext.state === 'suspended') {
                             window.audioContext.resume();
                         }
                         
-                        // Create audio buffer
+                        // Create audio buffer with proper sample rate
                         const audioBuffer = window.audioContext.createBuffer(1, pcmData.length, this.sampleRate);
                         const channelData = audioBuffer.getChannelData(0);
                         
-                        // Convert PCM to float32 with volume boost
+                        // Convert PCM to float32 with smooth processing
                         for (let i = 0; i < pcmData.length; i++) {
                             let sample = pcmData[i] / 32768.0;
-                            sample = Math.max(-0.95, Math.min(0.95, sample));
+                            // Apply gentle limiting and slight compression
+                            sample = Math.max(-0.9, Math.min(0.9, sample));
+                            if (Math.abs(sample) > 0.7) {
+                                sample = sample > 0 ? 0.7 + (sample - 0.7) * 0.3 : -0.7 + (sample + 0.7) * 0.3;
+                            }
                             channelData[i] = sample;
                         }
                         
                         this.audioQueue.push(audioBuffer);
                         
-                        // Start playback if not running
-                        if (!this.isPlaying) {
-                            this.startPlayback();
+                        // Start playback if not running, but wait for a few chunks first
+                        if (!this.isPlaying && this.audioQueue.length >= 2) {
+                            this.startSmoothPlayback();
                         }
                         
                     } catch (error) {
@@ -783,17 +801,23 @@ async def demo_page():
                     }
                 }
                 
-                startPlayback() {
-                    if (this.audioQueue.length === 0) return;
+                startSmoothPlayback() {
+                    if (this.audioQueue.length === 0 || this.isPlaying) return;
                     
                     this.isPlaying = true;
-                    this.nextPlayTime = window.audioContext.currentTime + 0.1; // 100ms buffer
+                    this.nextPlayTime = window.audioContext.currentTime + this.bufferTime;
                     this.playNextChunk();
                 }
                 
                 playNextChunk() {
                     if (this.audioQueue.length === 0) {
                         this.isPlaying = false;
+                        // Restart if more audio comes in
+                        setTimeout(() => {
+                            if (this.audioQueue.length > 0 && !this.isPlaying) {
+                                this.startSmoothPlayback();
+                            }
+                        }, 50);
                         return;
                     }
                     
@@ -801,24 +825,27 @@ async def demo_page():
                     const source = window.audioContext.createBufferSource();
                     source.buffer = audioBuffer;
                     
-                    // Create gain node for volume control
-                    const gainNode = window.audioContext.createGain();
-                    gainNode.gain.value = 2.0; // 2x volume boost for AI voice
+                    // Connect through our persistent gain node
+                    if (this.gainNode) {
+                        source.connect(this.gainNode);
+                    } else {
+                        // Fallback if gain node not ready
+                        const tempGain = window.audioContext.createGain();
+                        tempGain.gain.value = 2.5;
+                        source.connect(tempGain);
+                        tempGain.connect(window.audioContext.destination);
+                    }
                     
-                    // Connect: source -> gain -> destination
-                    source.connect(gainNode);
-                    gainNode.connect(window.audioContext.destination);
-                    
-                    // Calculate timing
+                    // Precise timing for seamless playback
                     const currentTime = window.audioContext.currentTime;
-                    const startTime = Math.max(currentTime + 0.01, this.nextPlayTime);
+                    const startTime = Math.max(currentTime, this.nextPlayTime);
                     
                     source.start(startTime);
                     this.nextPlayTime = startTime + audioBuffer.duration;
                     
-                    // Schedule next chunk
-                    const delay = Math.max(10, (audioBuffer.duration * 1000) - 30);
-                    setTimeout(() => this.playNextChunk(), delay);
+                    // Schedule next chunk with overlap prevention
+                    const scheduleTime = Math.max(5, (audioBuffer.duration * 1000) - 10);
+                    setTimeout(() => this.playNextChunk(), scheduleTime);
                 }
                 
                 clear() {
@@ -826,10 +853,18 @@ async def demo_page():
                     this.isPlaying = false;
                     this.nextPlayTime = 0;
                 }
+                
+                stop() {
+                    this.clear();
+                    if (this.gainNode) {
+                        this.gainNode.disconnect();
+                        this.gainNode = null;
+                    }
+                }
             }
             
-            // Initialize the reliable audio streamer
-            const audioStreamer = new ReliableAudioStreamer();
+            // Initialize the smooth audio streamer
+            const audioStreamer = new SmoothAudioStreamer();
             
             function playAudioFromBase64(base64Data) {
                 audioStreamer.addAudioChunk(base64Data);
