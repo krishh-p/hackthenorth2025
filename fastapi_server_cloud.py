@@ -647,20 +647,16 @@ async def demo_page():
                             for (let i = 0; i < resampledData.length; i++) {
                                 let sample = resampledData[i];
                                 
-                                // Apply moderate gain boost 
-                                sample *= 1.8; // 1.8x gain boost (reduced from 4x)
+                                // Apply good gain boost but not too much
+                                sample *= 2.5; // 2.5x gain boost (was 4x, now reduced)
                                 
                                 // Apply noise gate - reduce background noise
                                 if (Math.abs(sample) < 0.02) {
                                     sample *= 0.1; // Reduce quiet sounds (background noise)
                                 }
                                 
-                                // Apply soft compression for voice clarity
-                                if (sample > 0) {
-                                    sample = Math.pow(sample, 0.7); // Compress loud parts
-                                } else {
-                                    sample = -Math.pow(-sample, 0.7);
-                                }
+                                // Apply slight compression for better voice clarity
+                                sample = sample > 0 ? Math.pow(sample, 0.8) : -Math.pow(-sample, 0.8);
                                 
                                 // Hard limiting to prevent clipping
                                 sample = Math.max(-0.95, Math.min(0.95, sample));
