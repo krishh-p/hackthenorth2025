@@ -27,10 +27,13 @@
   CurrentVisibility: Editable
   MaxVisibility: Editable
   ScriptInputsHidden:
+    anchorModule: false
     audioComponent: false
+    camera: false
     centerPosition: false
     generateSound: false
     objectPrompts: false
+    objectsParent: false
     snap3DFactory: false
     spawnHeight: false
     spawnRadius: false
@@ -49,6 +52,9 @@
       centerPosition: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
       audioComponent: !<reference.AudioComponent> 00000000-0000-0000-0000-000000000000
       generateSound: !<reference.AudioTrackAsset> 00000000-0000-0000-0000-000000000000
+      anchorModule: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
+      camera: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+      objectsParent: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
   ScriptTypes:
     -
       {}
@@ -68,4 +74,11 @@
     - // @input Component.AudioComponent audioComponent
     - '// @ui {"widget":"group_start", "label":"Audio Feedback"}'
     - // @input Asset.AudioTrackAsset generateSound
+    - '// @ui {"widget":"group_end"}'
+    - // @input AssignableType_1 anchorModule
+    - '// @ui {"widget":"group_start", "label":"Spatial Anchoring"}'
+    - '// @ui {"widget":"group_end"}'
+    - // @input SceneObject camera
+    - // @input SceneObject objectsParent
+    - '// @ui {"widget":"group_start", "label":"Object Container"}'
     - '// @ui {"widget":"group_end"}'

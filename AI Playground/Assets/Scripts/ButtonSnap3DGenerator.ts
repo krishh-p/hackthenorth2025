@@ -45,6 +45,7 @@ export class ButtonSnap3DGenerator extends BaseScriptComponent {
     @input
     @ui.group_start("Spatial Anchoring")
     private anchorModule: AnchorModule;
+    @ui.group_end
 
     @input
     private camera: SceneObject;
@@ -75,17 +76,11 @@ export class ButtonSnap3DGenerator extends BaseScriptComponent {
         }
 
         if (!this.anchorModule) {
-            print("ERROR: ButtonSnap3DGenerator requires an AnchorModule to be assigned");
-            return;
+            print("WARNING: No AnchorModule assigned - spatial anchoring will be disabled");
         }
 
         if (!this.camera) {
             print("ERROR: ButtonSnap3DGenerator requires a camera SceneObject to be assigned");
-            return;
-        }
-
-        if (!this.objectsParent) {
-            print("ERROR: ButtonSnap3DGenerator requires an objectsParent SceneObject to be assigned");
             return;
         }
 
@@ -100,7 +95,11 @@ export class ButtonSnap3DGenerator extends BaseScriptComponent {
         }
 
         this.createEvent('OnStartEvent').bind(() => {
-            this.initializeAnchorSession();
+            if (this.anchorModule) {
+                this.initializeAnchorSession();
+            } else {
+                print("Spatial anchoring disabled - no AnchorModule provided");
+            }
         });
 
         this.pinchButton.onButtonPinched.add(this.generateAllObjects.bind(this));
@@ -150,7 +149,7 @@ export class ButtonSnap3DGenerator extends BaseScriptComponent {
             return;
         }
 
-        if (!this.anchorSession) {
+        if (this.anchorModule && !this.anchorSession) {
             print("ERROR: Anchor session not ready. Please wait for initialization.");
             return;
         }
@@ -182,8 +181,20 @@ export class ButtonSnap3DGenerator extends BaseScriptComponent {
             const objectId = await this.snap3DFactory.createInteractable3DObject(prompt, spawnPosition, this.objectsParent);
             print(`✓ Generated object ${index + 1}: ${prompt}`);
 
-            // Create anchor for the object
-            await this.createAnchorForObject(objectId, spawnPosition, prompt);
+            // Create anchor for the object (if anchoring is enabled) - don't await to avoid blocking
+            if (this.anchorModule && this.anchorSession) {
+                // Create anchor in background without blocking next object generation
+                this.createAnchorForObject(objectId, spawnPosition, prompt).catch(error => {
+                    print(`⚠️ Failed to create anchor for ${prompt}: ${error}`);
+                });
+            }
+
+            // Always add to created objects list immediately
+            const cleanPrompt = objectId.replace("Successfully created mesh with prompt: ", "");
+            const timestamp = Date.now();
+            const uniqueId = `${timestamp}:${cleanPrompt}`;
+            this.createdObjects.push(uniqueId);
+            print(`✓ Object created: ${prompt}`);
 
             // Wait a moment then generate the next object
             const delayedCall = this.createEvent("DelayedCallbackEvent");
