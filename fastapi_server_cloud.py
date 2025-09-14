@@ -67,16 +67,7 @@ class ServerAudioManager:
                 headers={"Authorization": f"Bearer {api_key}"},
                 json={
                     "assistantId": assistant_id,
-                    "transport": {
-                        "provider": "vapi.websocket",
-                        "options": {
-                            "audio": {
-                                "sampleRate": 16000,
-                                "encoding": "linear16",
-                                "channels": 1
-                            }
-                        }
-                    }
+                    "transport": {"provider": "vapi.websocket"}
                 }
             )
             
@@ -545,9 +536,9 @@ async def websocket_endpoint(websocket: WebSocket, call_id: str):
 
         ka_task = asyncio.create_task(keepalive())
         
-        # Handle client messages
-        while True:
-            try:
+        try:
+            # Handle client messages
+            while True:
                 # Prefer binary mic audio (PCM16 data)
                 msg = await websocket.receive()
                 
@@ -571,14 +562,12 @@ async def websocket_endpoint(websocket: WebSocket, call_id: str):
                         pass
                 else:
                     break
-                    
-            except WebSocketDisconnect:
-                logger.info(f"Client WebSocket disconnected: {call_id}")
-                break
-            except Exception as e:
-                logger.error(f"WebSocket error: {e}")
-                break
-                
+                        
+        except WebSocketDisconnect:
+            logger.info(f"Client WebSocket disconnected: {call_id}")
+        except Exception as e:
+            logger.error(f"WebSocket error: {e}")
+            
     finally:
         # Cleanup
         ka_task.cancel()
