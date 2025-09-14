@@ -461,7 +461,7 @@ async def demo_page():
                     playhead += dur;
                     
                     console.log('✅ Audio scheduled at', playhead, 'duration:', dur);
-                    addMessage('🔊 Playing audio chunk (' + pcm16.length + ' samples)');
+                    // Removed continuous audio chunk messages for cleaner UI
                 } catch (error) {
                     console.error('❌ Audio playback error:', error);
                     addMessage('🔊 Audio error: ' + error.message);
