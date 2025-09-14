@@ -157,13 +157,14 @@ class VapiService:
         try:
             async with websockets.connect(ws_url, ssl=ssl_context) as vapi_ws:
                 manager.vapi_connections[call_id] = vapi_ws
-                logger.info(f"Connected to Vapi WebSocket for call: {call_id}")
+                logger.info(f"✅ Connected to Vapi WebSocket for call: {call_id}")
+                logger.info(f"Vapi WebSocket URL: {ws_url}")
                 
                 # Send connection established message to client
                 await manager.send_to_client(call_id, {
                     "type": "vapi_connected",
                     "call_id": call_id,
-                    "message": "Connected to Vapi"
+                    "message": "Connected to Vapi - ready for audio!"
                 })
                 
                 # Listen for messages from Vapi
@@ -321,8 +322,21 @@ async def websocket_endpoint(websocket: WebSocket, call_id: str):
                     # Forward audio data to Vapi
                     if call_id in manager.vapi_connections:
                         try:
+                            # Decode base64 audio data
                             audio_data = base64.b64decode(message.get("data", ""))
+                            
+                            # Send raw binary data directly to Vapi (like the local version)
                             await manager.vapi_connections[call_id].send(audio_data)
+                            
+                            # Debug: Log successful sends occasionally
+                            if hasattr(manager, '_audio_send_count'):
+                                manager._audio_send_count += 1
+                            else:
+                                manager._audio_send_count = 1
+                                
+                            if manager._audio_send_count % 50 == 1:
+                                logger.info(f"Sent {manager._audio_send_count} audio chunks to Vapi")
+                                
                         except Exception as e:
                             logger.error(f"Error sending audio to Vapi: {e}")
                     else:
@@ -593,48 +607,37 @@ async def demo_page():
                         // Modern approach - but let's use ScriptProcessor for compatibility
                     }
                     
-                    // Use ScriptProcessor (deprecated but widely supported)
-                    processor = window.audioContext.createScriptProcessor(1024, 1, 1);
+                    // Use ScriptProcessor with same block size as local version (320 samples)
+                    processor = window.audioContext.createScriptProcessor(512, 1, 1); // Closest to 320
                     
                     processor.onaudioprocess = function(e) {
                         if (ws && ws.readyState === WebSocket.OPEN) {
                             const inputData = e.inputBuffer.getChannelData(0);
                             
-                            // Check if there's actual audio data (not silence)
-                            let hasAudio = false;
+                            // Convert float32 to 16-bit PCM (same as local version)
+                            const pcmData = new Int16Array(inputData.length);
                             for (let i = 0; i < inputData.length; i++) {
-                                if (Math.abs(inputData[i]) > 0.01) {
-                                    hasAudio = true;
-                                    break;
-                                }
+                                const sample = Math.max(-1, Math.min(1, inputData[i]));
+                                pcmData[i] = sample * 32767;
                             }
                             
-                            if (hasAudio) {
-                                // Convert float32 to 16-bit PCM
-                                const pcmData = new Int16Array(inputData.length);
-                                for (let i = 0; i < inputData.length; i++) {
-                                    const sample = Math.max(-1, Math.min(1, inputData[i]));
-                                    pcmData[i] = sample * 32767;
-                                }
-                                
-                                // Convert to base64
-                                const bytes = new Uint8Array(pcmData.buffer);
-                                let binary = '';
-                                for (let i = 0; i < bytes.length; i++) {
-                                    binary += String.fromCharCode(bytes[i]);
-                                }
-                                const base64 = btoa(binary);
-                                
-                                ws.send(JSON.stringify({
-                                    type: 'audio_to_vapi',
-                                    data: base64
-                                }));
-                                
-                                // Debug: Show mic is working
-                                audioSentCount++;
-                                if (audioSentCount % 20 === 1) { // Every ~2 seconds
-                                    addMessage(`🎤 Mic active (${audioSentCount} chunks sent)`);
-                                }
+                            // Convert to base64 (to send over WebSocket)
+                            const bytes = new Uint8Array(pcmData.buffer);
+                            let binary = '';
+                            for (let i = 0; i < bytes.length; i++) {
+                                binary += String.fromCharCode(bytes[i]);
+                            }
+                            const base64 = btoa(binary);
+                            
+                            ws.send(JSON.stringify({
+                                type: 'audio_to_vapi',
+                                data: base64
+                            }));
+                            
+                            // Debug: Show mic is working
+                            audioSentCount++;
+                            if (audioSentCount % 30 === 1) { // Every ~1 second
+                                addMessage(`🎤 Mic active (${audioSentCount} chunks sent)`);
                             }
                         }
                     };
