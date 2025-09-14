@@ -618,6 +618,13 @@ async def demo_page():
                         if (ws && ws.readyState === WebSocket.OPEN) {
                             const inputData = e.inputBuffer.getChannelData(0);
                             
+                            // Calculate RMS for voice detection
+                            let rms = 0;
+                            for (let i = 0; i < inputData.length; i++) {
+                                rms += inputData[i] * inputData[i];
+                            }
+                            rms = Math.sqrt(rms / inputData.length);
+                            
                             // Resample from browser sample rate to 16kHz
                             const outputLength = Math.floor(inputData.length / resampleRatio);
                             const resampledData = new Float32Array(outputLength);
@@ -635,14 +642,29 @@ async def demo_page():
                                 }
                             }
                             
-                            // Convert float32 to 16-bit PCM with proper scaling
+                            // Voice enhancement and gain boost
                             const pcmData = new Int16Array(resampledData.length);
                             for (let i = 0; i < resampledData.length; i++) {
-                                // Apply soft clipping to prevent distortion
                                 let sample = resampledData[i];
-                                sample = Math.max(-1, Math.min(1, sample));
-                                // Apply slight compression for better voice clarity
-                                sample = sample > 0 ? Math.pow(sample, 0.8) : -Math.pow(-sample, 0.8);
+                                
+                                // Apply significant gain boost for quiet voices
+                                sample *= 4.0; // 4x gain boost
+                                
+                                // Apply noise gate - reduce background noise
+                                if (Math.abs(sample) < 0.02) {
+                                    sample *= 0.1; // Reduce quiet sounds (background noise)
+                                }
+                                
+                                // Apply soft compression for voice clarity
+                                if (sample > 0) {
+                                    sample = Math.pow(sample, 0.7); // Compress loud parts
+                                } else {
+                                    sample = -Math.pow(-sample, 0.7);
+                                }
+                                
+                                // Hard limiting to prevent clipping
+                                sample = Math.max(-0.95, Math.min(0.95, sample));
+                                
                                 pcmData[i] = Math.round(sample * 32767);
                             }
                             
@@ -655,10 +677,11 @@ async def demo_page():
                                 data: base64
                             }));
                             
-                            // Reduced debug frequency for performance
+                            // Show voice level for debugging
                             audioSentCount++;
-                            if (audioSentCount % 50 === 1) { // Every ~1.5 seconds
-                                addMessage(`🎤 Mic active (${audioSentCount} chunks, ${resampledData.length} samples/chunk)`);
+                            if (audioSentCount % 30 === 1) { // Every ~1 second
+                                const voiceLevel = (rms * 100).toFixed(1);
+                                addMessage(`🎤 Mic active (${audioSentCount} chunks, voice level: ${voiceLevel}%)`);
                             }
                         }
                     };
@@ -701,35 +724,55 @@ async def demo_page():
                 addMessage('🔇 Recording stopped');
             }
             
-            // Professional-grade audio streaming system
-            class AudioStreamer {
+            // Continuous audio streaming system - no gaps, no choppiness
+            class ContinuousAudioStreamer {
                 constructor() {
-                    this.audioQueue = [];
+                    this.audioBuffer = []; // Continuous buffer instead of queue
                     this.isPlaying = false;
-                    this.nextPlayTime = 0;
-                    this.bufferTime = 0.05; // 50ms buffer for smooth playback
-                    this.maxQueueSize = 15; // Prevent memory buildup
                     this.sampleRate = 16000;
                     this.gainNode = null;
-                    this.setupAudioProcessing();
+                    this.scriptProcessor = null;
+                    this.bufferPosition = 0;
+                    this.setupContinuousPlayback();
                 }
                 
-                setupAudioProcessing() {
+                setupContinuousPlayback() {
                     if (!window.audioContext) return;
                     
-                    // Create gain node for volume control and dynamics
+                    // Create gain node for volume control
                     this.gainNode = window.audioContext.createGain();
-                    this.gainNode.gain.value = 1.2; // Slight boost for clarity
+                    this.gainNode.gain.value = 1.5; // Boost for clarity
+                    
+                    // Create script processor for continuous playback
+                    this.scriptProcessor = window.audioContext.createScriptProcessor(4096, 0, 1);
+                    
+                    this.scriptProcessor.onaudioprocess = (e) => {
+                        const outputBuffer = e.outputBuffer.getChannelData(0);
+                        const outputLength = outputBuffer.length;
+                        
+                        // Fill output buffer from our continuous audio buffer
+                        for (let i = 0; i < outputLength; i++) {
+                            if (this.bufferPosition < this.audioBuffer.length) {
+                                outputBuffer[i] = this.audioBuffer[this.bufferPosition];
+                                this.bufferPosition++;
+                            } else {
+                                outputBuffer[i] = 0; // Silence when no data
+                            }
+                        }
+                        
+                        // Clean up old data to prevent memory buildup
+                        if (this.bufferPosition > 48000) { // Keep 1 second of history
+                            this.audioBuffer = this.audioBuffer.slice(this.bufferPosition - 16000);
+                            this.bufferPosition = 16000;
+                        }
+                    };
+                    
+                    this.scriptProcessor.connect(this.gainNode);
                     this.gainNode.connect(window.audioContext.destination);
                 }
                 
                 addAudioChunk(base64Data) {
                     try {
-                        // Prevent queue overflow for memory efficiency
-                        if (this.audioQueue.length > this.maxQueueSize) {
-                            this.audioQueue.shift(); // Remove oldest chunk
-                        }
-                        
                         // Convert base64 to PCM data
                         const binaryString = atob(base64Data);
                         const bytes = new Uint8Array(binaryString.length);
@@ -737,41 +780,35 @@ async def demo_page():
                             bytes[i] = binaryString.charCodeAt(i);
                         }
                         
-                        // Ensure valid PCM data length (must be even for 16-bit samples)
+                        // Ensure valid PCM data
                         if (bytes.length % 2 !== 0 || bytes.length === 0) return;
                         
                         const pcmData = new Int16Array(bytes.buffer);
                         
-                        // Initialize audio context with optimal settings
+                        // Initialize audio context if needed
                         if (!window.audioContext) {
                             window.audioContext = new (window.AudioContext || window.webkitAudioContext)({
                                 latencyHint: 'interactive',
                                 sampleRate: 48000
                             });
-                            this.setupAudioProcessing();
+                            this.setupContinuousPlayback();
                         }
                         
                         if (window.audioContext.state === 'suspended') {
                             window.audioContext.resume();
                         }
                         
-                        // Create high-quality audio buffer
-                        const audioBuffer = window.audioContext.createBuffer(1, pcmData.length, this.sampleRate);
-                        const channelData = audioBuffer.getChannelData(0);
-                        
-                        // Convert PCM to float32 with proper normalization and light processing
+                        // Convert PCM to float32 and append to continuous buffer
                         for (let i = 0; i < pcmData.length; i++) {
                             let sample = pcmData[i] / 32768.0;
-                            // Apply soft limiting to prevent clipping
-                            sample = Math.max(-0.95, Math.min(0.95, sample));
-                            channelData[i] = sample;
+                            // Apply gentle limiting
+                            sample = Math.max(-0.9, Math.min(0.9, sample));
+                            this.audioBuffer.push(sample);
                         }
                         
-                        this.audioQueue.push(audioBuffer);
-                        
                         // Start playback if not already running
-                        if (!this.isPlaying && this.audioQueue.length > 0) {
-                            this.startPlayback();
+                        if (!this.isPlaying) {
+                            this.startContinuousPlayback();
                         }
                         
                     } catch (error) {
@@ -779,52 +816,34 @@ async def demo_page():
                     }
                 }
                 
-                startPlayback() {
-                    if (this.audioQueue.length === 0) return;
+                startContinuousPlayback() {
+                    if (this.isPlaying || !this.scriptProcessor) return;
                     
                     this.isPlaying = true;
-                    this.nextPlayTime = window.audioContext.currentTime + this.bufferTime;
-                    this.playNextChunk();
-                }
-                
-                playNextChunk() {
-                    if (this.audioQueue.length === 0) {
-                        this.isPlaying = false;
-                        return;
-                    }
-                    
-                    const audioBuffer = this.audioQueue.shift();
-                    const source = window.audioContext.createBufferSource();
-                    source.buffer = audioBuffer;
-                    
-                    // Connect through gain node for better control
-                    if (this.gainNode) {
-                        source.connect(this.gainNode);
-                    } else {
-                        source.connect(window.audioContext.destination);
-                    }
-                    
-                    // Precise timing calculation
-                    const currentTime = window.audioContext.currentTime;
-                    const startTime = Math.max(currentTime + 0.001, this.nextPlayTime);
-                    
-                    source.start(startTime);
-                    this.nextPlayTime = startTime + audioBuffer.duration;
-                    
-                    // Schedule next chunk with minimal latency
-                    const scheduleDelay = Math.max(5, (audioBuffer.duration * 1000) - 20);
-                    setTimeout(() => this.playNextChunk(), scheduleDelay);
+                    // The script processor handles continuous playback automatically
                 }
                 
                 clear() {
-                    this.audioQueue = [];
+                    this.audioBuffer = [];
+                    this.bufferPosition = 0;
                     this.isPlaying = false;
-                    this.nextPlayTime = 0;
+                }
+                
+                stop() {
+                    if (this.scriptProcessor) {
+                        this.scriptProcessor.disconnect();
+                        this.scriptProcessor = null;
+                    }
+                    if (this.gainNode) {
+                        this.gainNode.disconnect();
+                        this.gainNode = null;
+                    }
+                    this.clear();
                 }
             }
             
-            // Initialize the audio streamer
-            const audioStreamer = new AudioStreamer();
+            // Initialize the continuous audio streamer
+            const audioStreamer = new ContinuousAudioStreamer();
             
             function playAudioFromBase64(base64Data) {
                 audioStreamer.addAudioChunk(base64Data);
