@@ -50,6 +50,11 @@ export class ButtonSnap3DGenerator extends BaseScriptComponent {
     private camera: SceneObject;
     @ui.group_end
 
+    @input
+    @ui.group_start("Object Container")
+    public objectsParent: SceneObject;
+    @ui.group_end
+
     private pinchButton: PinchButton;
     private isGenerating: boolean = false;
     private anchorSession?: AnchorSession;
@@ -83,6 +88,11 @@ export class ButtonSnap3DGenerator extends BaseScriptComponent {
         if (!this.centerPosition) {
             this.centerPosition = this.sceneObject;
             print("WARNING: No center position assigned, using script's SceneObject");
+        }
+
+        if (!this.objectsParent) {
+            this.objectsParent = this.sceneObject;
+            print("WARNING: No objects parent assigned, using script's SceneObject");
         }
 
         this.createEvent('OnStartEvent').bind(() => {
@@ -164,8 +174,8 @@ export class ButtonSnap3DGenerator extends BaseScriptComponent {
         print(`Generating object ${index + 1}/${this.objectPrompts.length}: ${prompt}`);
 
         try {
-            // Create the 3D object first
-            const objectId = await this.snap3DFactory.createInteractable3DObject(prompt, spawnPosition);
+            // Create the 3D object first and place it under objectsParent
+            const objectId = await this.snap3DFactory.createInteractable3DObject(prompt, spawnPosition, this.objectsParent);
             print(`✓ Generated object ${index + 1}: ${prompt}`);
 
             // Create anchor for the object
