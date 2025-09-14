@@ -1,0 +1,43 @@
+- !<AssetImportMetadata/31dd829d-7ad2-4ec2-b443-6b0b5c5b616b>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> 6e5bf5b6-6e3e-496d-815c-3b3e36f970d2
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> 6e5bf5b6-6e3e-496d-815c-3b3e36f970d2
+  PackageType: NotAPackage
+  PackagePolicy: CannotBeUnpacked
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> 1023975b-1389-43fe-b711-1b28fa5c4a13
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/1023975b-1389-43fe-b711-1b28fa5c4a13>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: aa44befc-6e60-481f-8eae-fb2a8ae889a0
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  CurrentVisibility: Editable
+  MaxVisibility: Editable
+  ScriptInputsHidden:
+    fireIntensity: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  DefaultScriptInputs:
+    - fireIntensity: !<float> 1.000000
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - // @input float fireIntensity = 1
+    - '// @ui {"widget":"group_start", "label":"Fire Settings"}'
+    - '// @ui {"widget":"group_end"}'

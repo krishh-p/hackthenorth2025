@@ -3,6 +3,8 @@ import { Interactable } from "SpectaclesInteractionKit.lspkg/Components/Interact
 import { InteractableManipulation } from "SpectaclesInteractionKit.lspkg/Components/Interaction/InteractableManipulation/InteractableManipulation";
 import { InteractionManager } from "SpectaclesInteractionKit.lspkg/Core/InteractionManager/InteractionManager";
 import { WebSocketController } from "./WebSocketController";
+import { FireBehavior } from "./FireBehavior";
+import { FireExtinguisherController } from "./FireExtinguisherController";
 
 @component
 export class Snap3DInteractable extends BaseScriptComponent {
@@ -48,6 +50,93 @@ export class Snap3DInteractable extends BaseScriptComponent {
   public setWebSocketController(controller: WebSocketController) {
     this.webSocketController = controller;
     print(`✓ WebSocketController set for object: ${this.promptDisplay.text}`);
+  }
+
+  private detectAndSetupSpecialBehaviors() {
+    const prompt = this.promptDisplay.text.toLowerCase();
+    const objectName = this.sceneObject.name;
+    print(`🔍 DEBUG: Object "${objectName}" analyzing prompt: "${prompt}"`);
+
+    // Check if this is a fire extinguisher FIRST (since it contains "fire" word)
+    if (this.isFireExtinguisher(prompt)) {
+      print(`🔍 DEBUG: Object "${objectName}" matched as fire extinguisher`);
+      this.setupFireExtinguisherBehavior();
+    }
+    // Check if this is a fire object
+    else if (this.isFireObject(prompt)) {
+      print(`🔍 DEBUG: Object "${objectName}" matched as fire object`);
+      this.setupFireBehavior();
+    } else {
+      print(`🔍 DEBUG: Object "${objectName}" - no special behavior detected for: "${prompt}"`);
+    }
+  }
+
+  private isFireObject(prompt: string): boolean {
+    // Exclude fire safety equipment
+    const excludeKeywords = [
+      'fire alarm', 'fire extinguisher', 'fire detector', 'fire safety',
+      'fire department', 'fire truck', 'fire station', 'fire hydrant'
+    ];
+
+    // Check if prompt contains excluded terms first
+    for (const exclude of excludeKeywords) {
+      if (prompt.includes(exclude)) {
+        return false;
+      }
+    }
+
+    const fireKeywords = [
+      'fire', 'flame', 'flames', 'burning', 'blaze', 'inferno',
+      'campfire', 'bonfire', 'torch', 'ember', 'flaming'
+    ];
+
+    return fireKeywords.some(keyword => prompt.includes(keyword));
+  }
+
+  private isFireExtinguisher(prompt: string): boolean {
+    // More specific matching for fire extinguisher
+    const extinguisherKeywords = [
+      'fire extinguisher', 'extinguisher', 'fire suppressor',
+      'firefighting equipment', 'fire safety'
+    ];
+
+    // Check for specific extinguisher phrases
+    for (const keyword of extinguisherKeywords) {
+      if (prompt.includes(keyword)) {
+        print(`🔍 DEBUG: Fire extinguisher keyword matched: "${keyword}"`);
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private setupFireBehavior() {
+    print(`🔥 Detected fire object, adding FireBehavior component`);
+
+    const fireBehavior = this.sceneObject.createComponent(FireBehavior.getTypeName()) as FireBehavior;
+    if (fireBehavior && this.webSocketController) {
+      fireBehavior.setWebSocketController(this.webSocketController);
+    }
+
+    // Add a tag to make it easier to identify fire objects
+    this.sceneObject.name = this.sceneObject.name + " [FIRE]";
+
+    print(`✓ Fire behavior setup complete for: ${this.promptDisplay.text}`);
+  }
+
+  private setupFireExtinguisherBehavior() {
+    print(`🧯 Detected fire extinguisher, adding FireExtinguisherController component`);
+
+    const extinguisherController = this.sceneObject.createComponent(FireExtinguisherController.getTypeName()) as FireExtinguisherController;
+    if (extinguisherController && this.webSocketController) {
+      extinguisherController.setWebSocketController(this.webSocketController);
+    }
+
+    // Add a tag to make it easier to identify fire extinguishers
+    this.sceneObject.name = this.sceneObject.name + " [EXTINGUISHER]";
+
+    print(`✓ Fire extinguisher behavior setup complete for: ${this.promptDisplay.text}`);
   }
 
   private setupInteraction() {
@@ -123,6 +212,9 @@ export class Snap3DInteractable extends BaseScriptComponent {
       this.spinner.enabled = false;
       this.finalModel = model.tryInstantiate(this.modelParent, this.mat);
       this.finalModel.getTransform().setLocalScale(this.sizeVec);
+
+      // When final model is ready, detect and setup special behaviors
+      this.detectAndSetupSpecialBehaviors();
     } else {
       this.tempModel = model.tryInstantiate(this.modelParent, this.mat);
       this.tempModel.getTransform().setLocalScale(this.sizeVec);

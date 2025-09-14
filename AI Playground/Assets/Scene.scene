@@ -1580,6 +1580,7 @@
       anchorModule: !<MappingBased.AssignableType_1> 62de5c58-1636-49b1-b7f6-dc42eb76ed68
       camera: !<reference.SceneObject> 00000000-0000-0065-0000-000000000064
       objectsParent: !<reference.SceneObject> 48924848-4974-45ca-8cff-e028ddad8faf
+      webSocketController: !<MappingBased.AssignableType_2> b245c48d-b21f-415d-ba7e-d99a945c3445
   ScriptTypes:
     "":
       {}

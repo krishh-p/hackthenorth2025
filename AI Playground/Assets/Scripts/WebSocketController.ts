@@ -124,4 +124,22 @@ export class WebSocketController extends BaseScriptComponent {
       this.debug(`⚠️ Cannot send object pinched - WebSocket not connected (isConnected: ${this.isConnected}, webSocket: ${this.webSocket !== null})`);
     }
   }
+
+  public send(messageString: string) {
+    this.debug(`🔍 DEBUG: Generic send called`);
+    this.debug(`🔍 DEBUG: Connection status - isConnected: ${this.isConnected}, webSocket exists: ${this.webSocket !== null && this.webSocket !== undefined}`);
+
+    if (this.isConnected && this.webSocket) {
+      this.debug(`🔍 DEBUG: Sending message: ${messageString}`);
+
+      try {
+        this.webSocket.send(messageString);
+        this.debug('📤 ✅ Successfully sent generic message');
+      } catch (error) {
+        this.debug('📤 ❌ Error sending generic message: ' + error);
+      }
+    } else {
+      this.debug(`⚠️ Cannot send generic message - WebSocket not connected (isConnected: ${this.isConnected}, webSocket: ${this.webSocket !== null})`);
+    }
+  }
 }
