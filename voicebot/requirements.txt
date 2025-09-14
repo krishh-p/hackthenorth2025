@@ -5,5 +5,4 @@ pydantic-core==2.20.1
 httpx==0.27.2
 python-dotenv==1.0.1
 certifi
-sounddevice
-numpy
+websockets

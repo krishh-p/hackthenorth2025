@@ -1,0 +1,47 @@
+- !<AssetImportMetadata/8f74dbf1-c809-43ba-8cf8-d1cc26eb8677>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> addaf482-b5aa-4dff-9d5c-750409231265
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> addaf482-b5aa-4dff-9d5c-750409231265
+  PackageType: NotAPackage
+  PackagePolicy: CannotBeUnpacked
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> e8c6be19-c810-4d46-8124-9cd3a0749e0f
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/e8c6be19-c810-4d46-8124-9cd3a0749e0f>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: e7d79d13-7e22-44f2-8f9f-5c38165e741e
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  CurrentVisibility: Editable
+  MaxVisibility: Editable
+  ScriptInputsHidden:
+    buttonPrefab: false
+    buttonSpacing: false
+    menuContainer: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  DefaultScriptInputs:
+    - buttonPrefab: !<reference.ObjectPrefab> 00000000-0000-0000-0000-000000000000
+      buttonSpacing: !<float> 3.000000
+      menuContainer: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - // @input Asset.ObjectPrefab buttonPrefab
+    - // @input float buttonSpacing = 3
+    - // @input SceneObject menuContainer

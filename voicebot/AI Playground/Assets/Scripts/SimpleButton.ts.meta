@@ -1,0 +1,44 @@
+- !<AssetImportMetadata/543456ef-5e17-4180-a2c9-0bf53808e466>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> c388df86-2e6a-4571-b6df-851fe5c65078
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> c388df86-2e6a-4571-b6df-851fe5c65078
+  PackageType: NotAPackage
+  PackagePolicy: CannotBeUnpacked
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> 15eae465-0235-43e8-8374-9068344ae18c
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/15eae465-0235-43e8-8374-9068344ae18c>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: 35287f42-a4da-4cf1-9841-5e55dbdd8480
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  CurrentVisibility: Editable
+  MaxVisibility: Editable
+  ScriptInputsHidden:
+    buttonId: false
+    textComponent: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  DefaultScriptInputs:
+    - textComponent: !<reference.Text> 00000000-0000-0000-0000-000000000000
+      buttonId: ""
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - // @input Component.Text textComponent
+    - // @input string buttonId

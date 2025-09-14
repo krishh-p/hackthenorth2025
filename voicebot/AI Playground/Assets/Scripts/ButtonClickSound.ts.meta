@@ -1,0 +1,47 @@
+- !<AssetImportMetadata/ee5f0e22-41c1-4078-b111-f8316db242d1>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> 59a353bf-5679-4138-8c1b-3047f358bea2
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> 59a353bf-5679-4138-8c1b-3047f358bea2
+  PackageType: NotAPackage
+  PackagePolicy: CannotBeUnpacked
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> 7c95c481-465e-4e19-aaa8-44715c40e63a
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/7c95c481-465e-4e19-aaa8-44715c40e63a>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: 54bd7314-bdb9-445b-b919-93a5eaf1ef4a
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  CurrentVisibility: Editable
+  MaxVisibility: Editable
+  ScriptInputsHidden:
+    audioComponent: false
+    clickSound: false
+    volume: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  DefaultScriptInputs:
+    - audioComponent: !<reference.AudioComponent> 00000000-0000-0000-0000-000000000000
+      clickSound: !<reference.AudioTrackAsset> 00000000-0000-0000-0000-000000000000
+      volume: !<float> 1.000000
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - // @input Component.AudioComponent audioComponent
+    - // @input Asset.AudioTrackAsset clickSound
+    - // @input float volume = 1

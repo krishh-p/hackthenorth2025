@@ -1,0 +1,44 @@
+- !<AssetImportMetadata/828332c4-1eda-4e2e-8dbc-4a85252a02bb>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> ad3bdd85-9f5b-497e-9cae-a13a121f0427
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> ad3bdd85-9f5b-497e-9cae-a13a121f0427
+  PackageType: NotAPackage
+  PackagePolicy: CannotBeUnpacked
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> 3c2c7497-982a-4967-a617-ace076612569
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/3c2c7497-982a-4967-a617-ace076612569>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: 8f146eb4-0884-4f57-8821-d1034c4e5a8b
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  CurrentVisibility: Editable
+  MaxVisibility: Editable
+  ScriptInputsHidden:
+    buttonMenu: false
+    showMenuOnStart: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  DefaultScriptInputs:
+    - buttonMenu: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
+      showMenuOnStart: true
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - // @input AssignableType buttonMenu
+    - // @input bool showMenuOnStart = true
