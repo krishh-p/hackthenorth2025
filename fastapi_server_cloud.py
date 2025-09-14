@@ -647,8 +647,8 @@ async def demo_page():
                             for (let i = 0; i < resampledData.length; i++) {
                                 let sample = resampledData[i];
                                 
-                                // Apply significant gain boost for quiet voices
-                                sample *= 4.0; // 4x gain boost
+                                // Apply moderate gain boost 
+                                sample *= 1.8; // 1.8x gain boost (reduced from 4x)
                                 
                                 // Apply noise gate - reduce background noise
                                 if (Math.abs(sample) < 0.02) {
@@ -724,55 +724,23 @@ async def demo_page():
                 addMessage('🔇 Recording stopped');
             }
             
-            // Continuous audio streaming system - no gaps, no choppiness
-            class ContinuousAudioStreamer {
+            // Reliable audio streaming with smooth playback
+            class ReliableAudioStreamer {
                 constructor() {
-                    this.audioBuffer = []; // Continuous buffer instead of queue
+                    this.audioQueue = [];
                     this.isPlaying = false;
+                    this.nextPlayTime = 0;
                     this.sampleRate = 16000;
-                    this.gainNode = null;
-                    this.scriptProcessor = null;
-                    this.bufferPosition = 0;
-                    this.setupContinuousPlayback();
-                }
-                
-                setupContinuousPlayback() {
-                    if (!window.audioContext) return;
-                    
-                    // Create gain node for volume control
-                    this.gainNode = window.audioContext.createGain();
-                    this.gainNode.gain.value = 1.5; // Boost for clarity
-                    
-                    // Create script processor for continuous playback
-                    this.scriptProcessor = window.audioContext.createScriptProcessor(4096, 0, 1);
-                    
-                    this.scriptProcessor.onaudioprocess = (e) => {
-                        const outputBuffer = e.outputBuffer.getChannelData(0);
-                        const outputLength = outputBuffer.length;
-                        
-                        // Fill output buffer from our continuous audio buffer
-                        for (let i = 0; i < outputLength; i++) {
-                            if (this.bufferPosition < this.audioBuffer.length) {
-                                outputBuffer[i] = this.audioBuffer[this.bufferPosition];
-                                this.bufferPosition++;
-                            } else {
-                                outputBuffer[i] = 0; // Silence when no data
-                            }
-                        }
-                        
-                        // Clean up old data to prevent memory buildup
-                        if (this.bufferPosition > 48000) { // Keep 1 second of history
-                            this.audioBuffer = this.audioBuffer.slice(this.bufferPosition - 16000);
-                            this.bufferPosition = 16000;
-                        }
-                    };
-                    
-                    this.scriptProcessor.connect(this.gainNode);
-                    this.gainNode.connect(window.audioContext.destination);
+                    this.maxQueueSize = 10; // Prevent buildup
                 }
                 
                 addAudioChunk(base64Data) {
                     try {
+                        // Prevent queue overflow
+                        if (this.audioQueue.length > this.maxQueueSize) {
+                            this.audioQueue.shift();
+                        }
+                        
                         // Convert base64 to PCM data
                         const binaryString = atob(base64Data);
                         const bytes = new Uint8Array(binaryString.length);
@@ -788,27 +756,30 @@ async def demo_page():
                         // Initialize audio context if needed
                         if (!window.audioContext) {
                             window.audioContext = new (window.AudioContext || window.webkitAudioContext)({
-                                latencyHint: 'interactive',
-                                sampleRate: 48000
+                                latencyHint: 'interactive'
                             });
-                            this.setupContinuousPlayback();
                         }
                         
                         if (window.audioContext.state === 'suspended') {
                             window.audioContext.resume();
                         }
                         
-                        // Convert PCM to float32 and append to continuous buffer
+                        // Create audio buffer
+                        const audioBuffer = window.audioContext.createBuffer(1, pcmData.length, this.sampleRate);
+                        const channelData = audioBuffer.getChannelData(0);
+                        
+                        // Convert PCM to float32 with volume boost
                         for (let i = 0; i < pcmData.length; i++) {
                             let sample = pcmData[i] / 32768.0;
-                            // Apply gentle limiting
-                            sample = Math.max(-0.9, Math.min(0.9, sample));
-                            this.audioBuffer.push(sample);
+                            sample = Math.max(-0.95, Math.min(0.95, sample));
+                            channelData[i] = sample;
                         }
                         
-                        // Start playback if not already running
+                        this.audioQueue.push(audioBuffer);
+                        
+                        // Start playback if not running
                         if (!this.isPlaying) {
-                            this.startContinuousPlayback();
+                            this.startPlayback();
                         }
                         
                     } catch (error) {
@@ -816,34 +787,53 @@ async def demo_page():
                     }
                 }
                 
-                startContinuousPlayback() {
-                    if (this.isPlaying || !this.scriptProcessor) return;
+                startPlayback() {
+                    if (this.audioQueue.length === 0) return;
                     
                     this.isPlaying = true;
-                    // The script processor handles continuous playback automatically
+                    this.nextPlayTime = window.audioContext.currentTime + 0.1; // 100ms buffer
+                    this.playNextChunk();
+                }
+                
+                playNextChunk() {
+                    if (this.audioQueue.length === 0) {
+                        this.isPlaying = false;
+                        return;
+                    }
+                    
+                    const audioBuffer = this.audioQueue.shift();
+                    const source = window.audioContext.createBufferSource();
+                    source.buffer = audioBuffer;
+                    
+                    // Create gain node for volume control
+                    const gainNode = window.audioContext.createGain();
+                    gainNode.gain.value = 2.0; // 2x volume boost for AI voice
+                    
+                    // Connect: source -> gain -> destination
+                    source.connect(gainNode);
+                    gainNode.connect(window.audioContext.destination);
+                    
+                    // Calculate timing
+                    const currentTime = window.audioContext.currentTime;
+                    const startTime = Math.max(currentTime + 0.01, this.nextPlayTime);
+                    
+                    source.start(startTime);
+                    this.nextPlayTime = startTime + audioBuffer.duration;
+                    
+                    // Schedule next chunk
+                    const delay = Math.max(10, (audioBuffer.duration * 1000) - 30);
+                    setTimeout(() => this.playNextChunk(), delay);
                 }
                 
                 clear() {
-                    this.audioBuffer = [];
-                    this.bufferPosition = 0;
+                    this.audioQueue = [];
                     this.isPlaying = false;
-                }
-                
-                stop() {
-                    if (this.scriptProcessor) {
-                        this.scriptProcessor.disconnect();
-                        this.scriptProcessor = null;
-                    }
-                    if (this.gainNode) {
-                        this.gainNode.disconnect();
-                        this.gainNode = null;
-                    }
-                    this.clear();
+                    this.nextPlayTime = 0;
                 }
             }
             
-            // Initialize the continuous audio streamer
-            const audioStreamer = new ContinuousAudioStreamer();
+            // Initialize the reliable audio streamer
+            const audioStreamer = new ReliableAudioStreamer();
             
             function playAudioFromBase64(base64Data) {
                 audioStreamer.addAudioChunk(base64Data);
