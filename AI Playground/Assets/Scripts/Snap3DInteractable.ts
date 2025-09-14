@@ -2,6 +2,7 @@ import { setTimeout } from "SpectaclesInteractionKit.lspkg/Utils/FunctionTimingU
 import { Interactable } from "SpectaclesInteractionKit.lspkg/Components/Interaction/Interactable/Interactable";
 import { InteractableManipulation } from "SpectaclesInteractionKit.lspkg/Components/Interaction/InteractableManipulation/InteractableManipulation";
 import { InteractionManager } from "SpectaclesInteractionKit.lspkg/Core/InteractionManager/InteractionManager";
+import { WebSocketController } from "./WebSocketController";
 
 @component
 export class Snap3DInteractable extends BaseScriptComponent {
@@ -25,6 +26,7 @@ export class Snap3DInteractable extends BaseScriptComponent {
   private sizeVec: vec3 = null;
   private interactable: Interactable;
   private manipulation: InteractableManipulation;
+  private webSocketController: WebSocketController;
 
   onAwake() {
     // Clone the image material to avoid modifying the original
@@ -41,6 +43,11 @@ export class Snap3DInteractable extends BaseScriptComponent {
     this.img.getTransform().setLocalScale(this.sizeVec);
 
     this.setupInteraction();
+  }
+
+  public setWebSocketController(controller: WebSocketController) {
+    this.webSocketController = controller;
+    print(`✓ WebSocketController set for object: ${this.promptDisplay.text}`);
   }
 
   private setupInteraction() {
@@ -77,12 +84,25 @@ export class Snap3DInteractable extends BaseScriptComponent {
 
   private onPinchStart() {
     print(`✓ Pinch started on: ${this.promptDisplay.text}`);
-    // Add pinch feedback or logic here
+
+    // Send pinch event via WebSocket
+    if (this.webSocketController) {
+      const position = this.sceneObject.getTransform().getWorldPosition();
+      print(`🔍 DEBUG: About to send WebSocket message for: ${this.promptDisplay.text}`);
+      print(`🔍 DEBUG: Position: x=${position.x.toFixed(3)}, y=${position.y.toFixed(3)}, z=${position.z.toFixed(3)}`);
+      print(`🔍 DEBUG: WebSocketController found: ${this.webSocketController !== null}`);
+
+      this.webSocketController.sendObjectPinched(this.promptDisplay.text, position);
+
+      print(`🔍 DEBUG: WebSocket sendObjectPinched called successfully`);
+    } else {
+      print(`⚠️ Cannot send WebSocket message - controller not found`);
+    }
   }
 
   private onPinchEnd() {
     print(`✓ Pinch ended on: ${this.promptDisplay.text}`);
-    // Add pinch release logic here
+    // Add pinch release logic here if needed
   }
 
   setPrompt(prompt: string) {

@@ -1,6 +1,7 @@
 import { Snap3D } from "Remote Service Gateway.lspkg/HostedSnap/Snap3D";
 import { Snap3DTypes } from "Remote Service Gateway.lspkg/HostedSnap/Snap3DTypes";
 import { Snap3DInteractable } from "./Snap3DInteractable";
+import { WebSocketController } from "./WebSocketController";
 
 import WorldCameraFinderProvider from "SpectaclesInteractionKit.lspkg/Providers/CameraProvider/WorldCameraFinderProvider";
 
@@ -37,7 +38,8 @@ export class Snap3DInteractableFactory extends BaseScriptComponent {
   createInteractable3DObject(
     input: string,
     overridePosition?: vec3,
-    parentObject?: SceneObject
+    parentObject?: SceneObject,
+    webSocketController?: WebSocketController
   ): Promise<string> {
     return new Promise((resolve, reject) => {
       if (!this.avaliableToRequest) {
@@ -53,6 +55,11 @@ export class Snap3DInteractableFactory extends BaseScriptComponent {
         Snap3DInteractable.getTypeName()
       );
       snap3DInteractable.setPrompt(input);
+
+      // Pass the WebSocket controller to the interactable object
+      if (webSocketController) {
+        snap3DInteractable.setWebSocketController(webSocketController);
+      }
 
       if (overridePosition) {
         outputObj.getTransform().setWorldPosition(overridePosition);

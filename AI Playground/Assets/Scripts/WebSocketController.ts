@@ -96,6 +96,9 @@ export class WebSocketController extends BaseScriptComponent {
   }
 
   public sendObjectPinched(objectName: string, position: vec3) {
+    this.debug(`🔍 DEBUG: sendObjectPinched called for: ${objectName}`);
+    this.debug(`🔍 DEBUG: Connection status - isConnected: ${this.isConnected}, webSocket exists: ${this.webSocket !== null && this.webSocket !== undefined}`);
+
     if (this.isConnected && this.webSocket) {
       const message = {
         type: 'object_pinched',
@@ -108,10 +111,17 @@ export class WebSocketController extends BaseScriptComponent {
         timestamp: Date.now()
       };
 
-      this.webSocket.send(JSON.stringify(message));
-      this.debug('📤 Sent object pinched: ' + objectName);
+      const messageString = JSON.stringify(message);
+      this.debug(`🔍 DEBUG: Sending message: ${messageString}`);
+
+      try {
+        this.webSocket.send(messageString);
+        this.debug('📤 ✅ Successfully sent object pinched: ' + objectName);
+      } catch (error) {
+        this.debug('📤 ❌ Error sending message: ' + error);
+      }
     } else {
-      this.debug('⚠️ Cannot send object pinched - WebSocket not connected');
+      this.debug(`⚠️ Cannot send object pinched - WebSocket not connected (isConnected: ${this.isConnected}, webSocket: ${this.webSocket !== null})`);
     }
   }
 }

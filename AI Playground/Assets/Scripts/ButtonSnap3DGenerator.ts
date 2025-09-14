@@ -5,6 +5,7 @@ import { AnchorSession, AnchorSessionOptions } from "Spatial Anchors.lspkg/Ancho
 import { Anchor } from "Spatial Anchors.lspkg/Anchor";
 import { AnchorComponent } from "Spatial Anchors.lspkg/AnchorComponent";
 import { WorldAnchor } from "Spatial Anchors.lspkg/WorldAnchor";
+import { WebSocketController } from "./WebSocketController";
 
 @component
 export class ButtonSnap3DGenerator extends BaseScriptComponent {
@@ -53,6 +54,11 @@ export class ButtonSnap3DGenerator extends BaseScriptComponent {
     @input
     @ui.group_start("Object Container")
     public objectsParent: SceneObject;
+    @ui.group_end
+
+    @input
+    @ui.group_start("WebSocket Integration")
+    private webSocketController: WebSocketController;
     @ui.group_end
 
     private pinchButton: PinchButton;
@@ -177,8 +183,8 @@ export class ButtonSnap3DGenerator extends BaseScriptComponent {
         print(`Generating object ${index + 1}/${this.objectPrompts.length}: ${prompt}`);
 
         try {
-            // Create the 3D object first
-            const objectId = await this.snap3DFactory.createInteractable3DObject(prompt, spawnPosition, this.objectsParent);
+            // Create the 3D object first, passing the WebSocket controller
+            const objectId = await this.snap3DFactory.createInteractable3DObject(prompt, spawnPosition, this.objectsParent, this.webSocketController);
             print(`✓ Generated object ${index + 1}: ${prompt}`);
 
             // Create anchor for the object (if anchoring is enabled) - don't await to avoid blocking

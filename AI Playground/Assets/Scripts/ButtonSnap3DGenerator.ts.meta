@@ -37,6 +37,7 @@
     snap3DFactory: false
     spawnHeight: false
     spawnRadius: false
+    webSocketController: false
   ScriptTypesHidden:
     {}
   ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
@@ -55,6 +56,7 @@
       anchorModule: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
       camera: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
       objectsParent: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+      webSocketController: !<MappingBased.AssignableType_2> 00000000-0000-0000-0000-000000000000
   ScriptTypes:
     -
       {}
@@ -81,4 +83,7 @@
     - // @input SceneObject camera
     - // @input SceneObject objectsParent
     - '// @ui {"widget":"group_start", "label":"Object Container"}'
+    - '// @ui {"widget":"group_end"}'
+    - // @input AssignableType_2 webSocketController
+    - '// @ui {"widget":"group_start", "label":"WebSocket Integration"}'
     - '// @ui {"widget":"group_end"}'
