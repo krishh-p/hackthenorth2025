@@ -485,6 +485,16 @@ async def demo_page():
                     updateStatus('Connected to WebSocket', true);
                     addMessage('Connected to server');
                     
+                    // Initialize audio context on user interaction
+                    if (!window.audioContext) {
+                        window.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    }
+                    
+                    // Resume audio context if suspended
+                    if (window.audioContext.state === 'suspended') {
+                        window.audioContext.resume();
+                    }
+                    
                     // Automatically connect to Vapi
                     if (window.vapiCallData) {
                         addMessage('Connecting to Vapi...');
@@ -601,29 +611,36 @@ async def demo_page():
             
             function playAudioFromBase64(base64Data) {
                 try {
-                    // Convert base64 to blob
+                    // Convert base64 to raw PCM data
                     const binaryString = atob(base64Data);
                     const bytes = new Uint8Array(binaryString.length);
                     for (let i = 0; i < binaryString.length; i++) {
                         bytes[i] = binaryString.charCodeAt(i);
                     }
                     
-                    // Create audio blob (assuming 16-bit PCM, 16kHz, mono)
-                    const audioBlob = new Blob([bytes], { type: 'audio/wav' });
-                    const audioUrl = URL.createObjectURL(audioBlob);
+                    // Convert to 16-bit signed integers
+                    const pcmData = new Int16Array(bytes.buffer);
                     
-                    // Play the audio
-                    const audio = new Audio();
-                    audio.src = audioUrl;
-                    audio.play().catch(e => {
-                        console.error('Error playing audio:', e);
-                        addMessage('Error playing audio: ' + e.message);
-                    });
+                    // Create Web Audio API context if not exists
+                    if (!window.audioContext) {
+                        window.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    }
                     
-                    // Clean up the URL after playing
-                    audio.onended = () => {
-                        URL.revokeObjectURL(audioUrl);
-                    };
+                    // Create audio buffer (16kHz, mono)
+                    const sampleRate = 16000;
+                    const audioBuffer = window.audioContext.createBuffer(1, pcmData.length, sampleRate);
+                    const channelData = audioBuffer.getChannelData(0);
+                    
+                    // Convert PCM data to float32 (-1.0 to 1.0)
+                    for (let i = 0; i < pcmData.length; i++) {
+                        channelData[i] = pcmData[i] / 32768.0;
+                    }
+                    
+                    // Create and play audio source
+                    const source = window.audioContext.createBufferSource();
+                    source.buffer = audioBuffer;
+                    source.connect(window.audioContext.destination);
+                    source.start();
                     
                 } catch (error) {
                     console.error('Error processing audio:', error);
