@@ -11,7 +11,7 @@ import certifi
 import httpx
 import os
 import base64
-import numpy as np
+# import numpy as np  # Not needed for cloud version
 from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
