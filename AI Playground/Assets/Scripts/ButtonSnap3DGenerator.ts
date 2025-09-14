@@ -1,6 +1,5 @@
 import { PinchButton } from "SpectaclesInteractionKit.lspkg/Components/UI/PinchButton/PinchButton";
 import { Snap3DInteractableFactory } from "./Snap3DInteractableFactory";
-import { AnchorComponent } from "Spatial Anchors.lspkg/AnchorComponent";
 
 @component
 export class ButtonSnap3DGenerator extends BaseScriptComponent {
@@ -38,13 +37,6 @@ export class ButtonSnap3DGenerator extends BaseScriptComponent {
     private generateSound: AudioTrackAsset;
     @ui.group_end
 
-    @input
-    @ui.group_start("Spatial Anchoring")
-    private enableAnchoring: boolean = true;
-
-    @input
-    private anchoredParent: SceneObject;
-    @ui.group_end
 
     private pinchButton: PinchButton;
     private isGenerating: boolean = false;
@@ -69,10 +61,6 @@ export class ButtonSnap3DGenerator extends BaseScriptComponent {
             print("WARNING: No center position assigned, using script's SceneObject");
         }
 
-        // Initialize spatial anchoring if enabled
-        if (this.enableAnchoring) {
-            this.setupAnchoring();
-        }
 
         this.pinchButton.onButtonPinched.add(this.generateAllObjects.bind(this));
     }
@@ -97,33 +85,6 @@ export class ButtonSnap3DGenerator extends BaseScriptComponent {
         this.generateNextObject(0);
     }
 
-    private setupAnchoring() {
-        if (!this.anchoredParent) {
-            print("WARNING: Anchoring enabled but no anchoredParent assigned. Objects will not be spatially anchored.");
-            return;
-        }
-
-        // Ensure the anchored parent has an AnchorComponent
-        let anchorComponent = this.anchoredParent.getComponent(AnchorComponent.getTypeName()) as AnchorComponent;
-        if (!anchorComponent) {
-            print("WARNING: AnchoredParent does not have an AnchorComponent. Please add one for spatial persistence.");
-            return;
-        }
-
-        print("Spatial anchoring setup complete. Objects will be anchored to the specified parent.");
-        print("Note: Make sure the AnchorComponent on the parent has a valid anchor assigned.");
-    }
-
-    private getAnchoredSpawnPosition(basePosition: vec3): vec3 {
-        if (!this.enableAnchoring || !this.anchoredParent) {
-            return basePosition;
-        }
-
-        // Transform the position relative to the anchored parent
-        const parentTransform = this.anchoredParent.getTransform();
-        const localPosition = parentTransform.getInvertedWorldTransform().multiplyPoint(basePosition);
-        return parentTransform.getWorldTransform().multiplyPoint(localPosition);
-    }
 
     private generateNextObject(index: number) {
         if (index >= this.objectPrompts.length) {
@@ -133,8 +94,7 @@ export class ButtonSnap3DGenerator extends BaseScriptComponent {
         }
 
         const prompt = this.objectPrompts[index];
-        const basePosition = this.calculateSpawnPosition(index, this.objectPrompts.length);
-        const spawnPosition = this.getAnchoredSpawnPosition(basePosition);
+        const spawnPosition = this.calculateSpawnPosition(index, this.objectPrompts.length);
 
         print(`Generating object ${index + 1}/${this.objectPrompts.length}: ${prompt}`);
 
@@ -153,10 +113,6 @@ export class ButtonSnap3DGenerator extends BaseScriptComponent {
                 this.createdObjects.push(uniqueId);
                 print(`Created objects list: [${this.createdObjects.join(", ")}]`);
 
-                // If anchoring is enabled, parent the generated object under the anchored parent
-                if (this.enableAnchoring && this.anchoredParent) {
-                    this.parentGeneratedObject(uniqueId);
-                }
 
                 // Wait a moment then generate the next object
                 const delayedCall = this.createEvent("DelayedCallbackEvent");
@@ -177,25 +133,6 @@ export class ButtonSnap3DGenerator extends BaseScriptComponent {
             });
     }
 
-    private parentGeneratedObject(objectId: string) {
-        // Find the generated object by its ID/name and parent it under the anchored parent
-        // Note: This assumes the Snap3DInteractableFactory creates objects with identifiable names
-        const sceneObjectCount = global.scene.getRootObjectsCount();
-        for (let i = 0; i < sceneObjectCount; i++) {
-            const sceneObject = global.scene.getRootObject(i);
-            if (sceneObject.name.includes(objectId) || sceneObject.name.includes("Snap3DInteractable")) {
-                // Check if this is the most recently created object
-                const currentTime = getTime();
-                const timeSinceCreation = currentTime - (sceneObject as any).creationTime || 0;
-
-                if (timeSinceCreation < 2.0) { // Within 2 seconds of creation
-                    sceneObject.setParent(this.anchoredParent);
-                    print(`Anchored object: ${sceneObject.name}`);
-                    break;
-                }
-            }
-        }
-    }
 
     private calculateSpawnPosition(index: number, totalObjects: number): vec3 {
         const centerPos = this.centerPosition.getTransform().getWorldPosition();
