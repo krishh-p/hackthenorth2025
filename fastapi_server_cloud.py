@@ -14,8 +14,9 @@ import base64
 # import numpy as np  # Not needed for cloud version
 from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.websockets import WebSocketState
 import uvicorn
 import logging
 
@@ -25,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-app = FastAPI(title="Server Audio Voicebot")
+app = FastAPI(title="Professional Audio Voicebot")
 
 # Add CORS middleware
 app.add_middleware(
@@ -35,6 +36,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Serve AudioWorklet files
+@app.get("/worklets/{filename}")
+async def serve_worklet(filename: str):
+    """Serve AudioWorklet files"""
+    worklet_path = f"worklets/{filename}"
+    if os.path.exists(worklet_path):
+        return FileResponse(worklet_path, media_type="application/javascript")
+    return {"error": "Worklet not found"}
 
 class ServerAudioManager:
     """Handles all audio processing on server side"""
@@ -57,7 +67,16 @@ class ServerAudioManager:
                 headers={"Authorization": f"Bearer {api_key}"},
                 json={
                     "assistantId": assistant_id,
-                    "transport": {"provider": "vapi.websocket"}
+                    "transport": {
+                        "provider": "vapi.websocket",
+                        "options": {
+                            "audio": {
+                                "sampleRate": 16000,
+                                "encoding": "linear16",
+                                "channels": 1
+                            }
+                        }
+                    }
                 }
             )
             
@@ -338,10 +357,17 @@ async def demo_page():
         </div>
 
         <script>
+            // Professional audio system with AudioWorklet and jitter buffer
             let ws = null;
-            let mediaRecorder = null;
             let audioContext = null;
-            let isRecording = false;
+            let outNode = null;
+            
+            // Jitter buffer state
+            let playQueue = [];
+            let playhead = 0;           // seconds (AudioContext time)
+            const BUFFER_AHEAD = 0.25;  // 250ms headroom for smooth playback
+            const CHUNK_SAMPLES = 320;  // 20ms @ 16k
+            const SR_IN = 16000;
             
             function addMessage(msg) {
                 const messages = document.getElementById('messages');
@@ -358,43 +384,43 @@ async def demo_page():
                 status.className = 'status ' + className;
             }
             
-            // Optimized audio playback with minimal latency
-            function playAudioChunk(base64Data) {
-                try {
-                    if (!audioContext) {
-                        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                    }
-                    
-                    if (audioContext.state === 'suspended') {
-                        audioContext.resume();
-                    }
-                    
-                    // Decode base64 to PCM
-                    const binaryString = atob(base64Data);
-                    const bytes = new Uint8Array(binaryString.length);
-                    for (let i = 0; i < binaryString.length; i++) {
-                        bytes[i] = binaryString.charCodeAt(i);
-                    }
-                    
-                    if (bytes.length % 2 !== 0) return;
-                    
-                    const pcmData = new Int16Array(bytes.buffer);
-                    const audioBuffer = audioContext.createBuffer(1, pcmData.length, 16000);
-                    const channelData = audioBuffer.getChannelData(0);
-                    
-                    // Convert and play immediately
-                    for (let i = 0; i < pcmData.length; i++) {
-                        channelData[i] = (pcmData[i] / 32768.0) * 3.0; // 3x volume
-                    }
-                    
-                    const source = audioContext.createBufferSource();
-                    source.buffer = audioBuffer;
-                    source.connect(audioContext.destination);
-                    source.start();
-                    
-                } catch (error) {
-                    console.error('Audio playback error:', error);
+            function ensureAudioCtx() {
+                if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioContext.state === 'suspended') audioContext.resume();
+            }
+            
+            // Professional jitter buffer for smooth playback
+            function schedulePcm16(base64Data) {
+                ensureAudioCtx();
+
+                // decode base64 -> Int16Array (PCM16 @ 16k)
+                const bin = atob(base64Data);
+                const bytes = new Uint8Array(bin.length);
+                for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+                if (bytes.length % 2 !== 0) return;
+                const pcm16 = new Int16Array(bytes.buffer);
+
+                // Convert to Float32 for AudioBuffer
+                const float = new Float32Array(pcm16.length);
+                for (let i = 0; i < pcm16.length; i++) {
+                    float[i] = Math.max(-1, Math.min(1, pcm16[i] / 32768)) * 2.5; // 2.5x volume boost
                 }
+
+                const buf = audioContext.createBuffer(1, float.length, SR_IN);
+                buf.copyToChannel(float, 0, 0);
+
+                // Initialize playhead once a little in the future
+                const now = audioContext.currentTime;
+                if (playhead < now + 0.01) playhead = now + BUFFER_AHEAD;
+
+                const src = audioContext.createBufferSource();
+                src.buffer = buf;
+                src.connect(audioContext.destination);
+
+                // duration in seconds at 16k: samples / 16000
+                const dur = float.length / SR_IN;
+                src.start(playhead);
+                playhead += dur;
             }
             
             function connect() {
@@ -408,7 +434,7 @@ async def demo_page():
                 
                 ws.onopen = function() {
                     updateStatus('🟢 Connected - Ready to speak!', 'connected');
-                    addMessage('Connected to AI voice assistant');
+                    addMessage('Connected to professional AI voice system');
                     btn.textContent = 'Connected';
                     document.getElementById('recordBtn').disabled = false;
                 };
@@ -417,7 +443,7 @@ async def demo_page():
                     const data = JSON.parse(event.data);
                     
                     if (data.type === 'audio_chunk') {
-                        playAudioChunk(data.data);
+                        schedulePcm16(data.data); // Use professional jitter buffer
                     } else if (data.type === 'vapi_message') {
                         const vapiData = data.data;
                         if (vapiData.type === 'speech-update') {
@@ -427,6 +453,8 @@ async def demo_page():
                                 updateStatus('🟢 Your turn to speak!', 'connected');
                             }
                         }
+                    } else if (data.type === 'ping') {
+                        // Keep-alive ping, no action needed
                     }
                 };
                 
@@ -445,45 +473,41 @@ async def demo_page():
                 };
             }
             
+            // Professional AudioWorklet-based recording
             async function startRecording() {
                 try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                    const stream = await navigator.mediaDevices.getUserMedia({
                         audio: { 
-                            sampleRate: 16000,
-                            channelCount: 1,
-                            echoCancellation: true,
-                            noiseSuppression: true
-                        } 
+                            channelCount: 1, 
+                            echoCancellation: true, 
+                            noiseSuppression: true,
+                            autoGainControl: true
+                        }
                     });
+
+                    if (!audioContext) {
+                        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        await audioContext.audioWorklet.addModule('/worklets/capture-16k.js');
+                    }
+
+                    const src = audioContext.createMediaStreamSource(stream);
+                    const worklet = new AudioWorkletNode(audioContext, 'capture-16k');
+                    src.connect(worklet);
                     
-                    mediaRecorder = new MediaRecorder(stream, {
-                        mimeType: 'audio/webm;codecs=opus'
-                    });
-                    
-                    mediaRecorder.ondataavailable = function(event) {
-                        if (event.data.size > 0 && ws && ws.readyState === WebSocket.OPEN) {
-                            const reader = new FileReader();
-                            reader.onload = function() {
-                                const arrayBuffer = reader.result;
-                                const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-                                ws.send(JSON.stringify({
-                                    type: 'audio_data',
-                                    data: base64
-                                }));
-                            };
-                            reader.readAsArrayBuffer(event.data);
+                    worklet.port.onmessage = (ev) => {
+                        if (ws && ws.readyState === WebSocket.OPEN) {
+                            // Send binary ArrayBuffer (PCM16 mono 16k) directly
+                            ws.send(ev.data);
                         }
                     };
-                    
-                    mediaRecorder.start(100); // 100ms chunks
-                    isRecording = true;
-                    
+
                     document.getElementById('recordBtn').textContent = 'Recording...';
                     document.getElementById('recordBtn').disabled = true;
-                    addMessage('🎤 Recording started - speak now!');
+                    addMessage('🎤 Professional audio capture active - speak now!');
                     
                 } catch (error) {
                     addMessage('Microphone access error: ' + error.message);
+                    console.error('Recording error:', error);
                 }
             }
         </script>
@@ -491,9 +515,11 @@ async def demo_page():
     </html>
     """)
 
+PING_INTERVAL = 20
+
 @app.websocket("/ws/{call_id}")
 async def websocket_endpoint(websocket: WebSocket, call_id: str):
-    """WebSocket endpoint for voice chat"""
+    """Professional WebSocket endpoint with binary audio support"""
     await websocket.accept()
     audio_manager.client_connections[call_id] = websocket
     
@@ -505,24 +531,49 @@ async def websocket_endpoint(websocket: WebSocket, call_id: str):
                 "type": "error",
                 "message": "Failed to connect to Vapi"
             }))
+            await websocket.close()
             return
+
+        async def keepalive():
+            """Keep connection alive with periodic pings"""
+            while websocket.application_state == WebSocketState.CONNECTED:
+                try:
+                    await websocket.send_text(json.dumps({"type": "ping"}))
+                except Exception:
+                    break
+                await asyncio.sleep(PING_INTERVAL)
+
+        ka_task = asyncio.create_task(keepalive())
         
         # Handle client messages
         while True:
             try:
-                data = await websocket.receive_text()
-                message = json.loads(data)
+                # Prefer binary mic audio (PCM16 data)
+                msg = await websocket.receive()
                 
-                if message.get("type") == "audio_data":
-                    # Forward audio to Vapi
-                    if call_id in audio_manager.vapi_connections:
+                if "bytes" in msg and msg["bytes"] is not None:
+                    # Binary PCM16 data from AudioWorklet
+                    data_bytes = msg["bytes"]
+                    vapi_ws = audio_manager.vapi_connections.get(call_id)
+                    if vapi_ws:
                         try:
-                            audio_data = base64.b64decode(message.get("data", ""))
-                            await audio_manager.vapi_connections[call_id].send(audio_data)
+                            # Forward binary PCM16 directly to Vapi
+                            await vapi_ws.send(data_bytes)
                         except Exception as e:
-                            logger.error(f"Error forwarding audio to Vapi: {e}")
+                            logger.error(f"Error forwarding binary to Vapi: {e}")
                             
+                elif "text" in msg and msg["text"] is not None:
+                    # Handle control messages if needed
+                    try:
+                        message = json.loads(msg["text"])
+                        # Process any control commands here
+                    except json.JSONDecodeError:
+                        pass
+                else:
+                    break
+                    
             except WebSocketDisconnect:
+                logger.info(f"Client WebSocket disconnected: {call_id}")
                 break
             except Exception as e:
                 logger.error(f"WebSocket error: {e}")
@@ -530,6 +581,7 @@ async def websocket_endpoint(websocket: WebSocket, call_id: str):
                 
     finally:
         # Cleanup
+        ka_task.cancel()
         if call_id in audio_manager.client_connections:
             del audio_manager.client_connections[call_id]
         if call_id in audio_manager.vapi_connections:
