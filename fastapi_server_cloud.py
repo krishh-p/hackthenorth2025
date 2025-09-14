@@ -252,6 +252,22 @@ async def demo_page():
                 cursor: not-allowed;
             }
             
+            .test-btn {
+                background: #ff6b35;
+                color: white;
+                border: none;
+                padding: 12px 24px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 16px;
+                transition: all 0.3s ease;
+            }
+            
+            .test-btn:hover {
+                background: #e55a2b;
+                transform: translateY(-2px);
+            }
+            
             .messages {
                 background: rgba(0,0,0,0.3);
                 padding: 25px;
@@ -325,6 +341,9 @@ async def demo_page():
                 <button id="recordBtn" class="record-btn" onclick="startRecording()" disabled>
                     Start Recording
                 </button>
+                <button id="testAudioBtn" class="test-btn" onclick="testAudio()">
+                    🔊 Test Audio
+                </button>
             </div>
             
             <div class="feature-grid">
@@ -382,36 +401,91 @@ async def demo_page():
             
             // Professional jitter buffer for smooth playback
             function schedulePcm16(base64Data) {
-                ensureAudioCtx();
+                try {
+                    ensureAudioCtx();
+                    console.log('🔊 Playing audio chunk, context state:', audioContext.state);
 
-                // decode base64 -> Int16Array (PCM16 @ 16k)
-                const bin = atob(base64Data);
-                const bytes = new Uint8Array(bin.length);
-                for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-                if (bytes.length % 2 !== 0) return;
-                const pcm16 = new Int16Array(bytes.buffer);
+                    // decode base64 -> Int16Array (PCM16 @ 16k)
+                    const bin = atob(base64Data);
+                    const bytes = new Uint8Array(bin.length);
+                    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+                    if (bytes.length % 2 !== 0) {
+                        console.warn('⚠️ Invalid audio data length');
+                        return;
+                    }
+                    const pcm16 = new Int16Array(bytes.buffer);
+                    console.log('📊 Audio samples:', pcm16.length);
 
-                // Convert to Float32 for AudioBuffer
-                const float = new Float32Array(pcm16.length);
-                for (let i = 0; i < pcm16.length; i++) {
-                    float[i] = Math.max(-1, Math.min(1, pcm16[i] / 32768)) * 2.5; // 2.5x volume boost
+                    // Convert to Float32 for AudioBuffer
+                    const float = new Float32Array(pcm16.length);
+                    for (let i = 0; i < pcm16.length; i++) {
+                        float[i] = Math.max(-1, Math.min(1, pcm16[i] / 32768)) * 4.0; // 4x volume boost for testing
+                    }
+
+                    const buf = audioContext.createBuffer(1, float.length, SR_IN);
+                    buf.copyToChannel(float, 0, 0);
+
+                    // Initialize playhead once a little in the future
+                    const now = audioContext.currentTime;
+                    if (playhead < now + 0.01) playhead = now + BUFFER_AHEAD;
+
+                    const src = audioContext.createBufferSource();
+                    src.buffer = buf;
+                    
+                    // Add gain node for extra volume
+                    const gainNode = audioContext.createGain();
+                    gainNode.gain.value = 3.0; // Extra volume boost
+                    
+                    src.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+
+                    // duration in seconds at 16k: samples / 16000
+                    const dur = float.length / SR_IN;
+                    src.start(playhead);
+                    playhead += dur;
+                    
+                    console.log('✅ Audio scheduled at', playhead, 'duration:', dur);
+                    addMessage('🔊 Playing audio chunk (' + pcm16.length + ' samples)');
+                } catch (error) {
+                    console.error('❌ Audio playback error:', error);
+                    addMessage('🔊 Audio error: ' + error.message);
                 }
-
-                const buf = audioContext.createBuffer(1, float.length, SR_IN);
-                buf.copyToChannel(float, 0, 0);
-
-                // Initialize playhead once a little in the future
-                const now = audioContext.currentTime;
-                if (playhead < now + 0.01) playhead = now + BUFFER_AHEAD;
-
-                const src = audioContext.createBufferSource();
-                src.buffer = buf;
-                src.connect(audioContext.destination);
-
-                // duration in seconds at 16k: samples / 16000
-                const dur = float.length / SR_IN;
-                src.start(playhead);
-                playhead += dur;
+            }
+            
+            function testAudio() {
+                try {
+                    ensureAudioCtx();
+                    addMessage('🔊 Testing audio system...');
+                    
+                    // Generate a simple 440Hz sine wave (A note) for 1 second
+                    const sampleRate = 16000;
+                    const duration = 1.0; // 1 second
+                    const samples = sampleRate * duration;
+                    const buffer = audioContext.createBuffer(1, samples, sampleRate);
+                    const channelData = buffer.getChannelData(0);
+                    
+                    // Generate sine wave
+                    for (let i = 0; i < samples; i++) {
+                        channelData[i] = Math.sin(2 * Math.PI * 440 * i / sampleRate) * 0.3; // 440Hz at 30% volume
+                    }
+                    
+                    // Create and play the test sound
+                    const source = audioContext.createBufferSource();
+                    source.buffer = buffer;
+                    
+                    const gainNode = audioContext.createGain();
+                    gainNode.gain.value = 2.0; // 2x volume
+                    
+                    source.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    source.start();
+                    
+                    addMessage('✅ Test sound played! If you heard a tone, audio is working.');
+                } catch (error) {
+                    console.error('❌ Test audio failed:', error);
+                    addMessage('❌ Audio test failed: ' + error.message);
+                }
             }
             
             function connect() {
