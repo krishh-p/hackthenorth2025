@@ -573,21 +573,57 @@ async def demo_page():
                         }
                     });
                     
-                    // Use MediaRecorder for better compatibility
-                    mediaRecorder = new MediaRecorder(stream, {
-                        mimeType: 'audio/webm;codecs=opus',
-                        audioBitsPerSecond: 16000
-                    });
+                    // Initialize audio context
+                    if (!window.audioContext) {
+                        window.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    }
                     
-                    let isRecording = true;
+                    // Resume audio context if suspended
+                    if (window.audioContext.state === 'suspended') {
+                        await window.audioContext.resume();
+                    }
                     
+                    const source = window.audioContext.createMediaStreamSource(stream);
+                    
+                    // Use AudioWorklet if available, fallback to ScriptProcessor
+                    let processor;
                     let audioSentCount = 0;
-                    mediaRecorder.ondataavailable = function(event) {
-                        if (event.data.size > 0 && ws && ws.readyState === WebSocket.OPEN && isRecording) {
-                            const reader = new FileReader();
-                            reader.onload = function() {
-                                const arrayBuffer = reader.result;
-                                const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+                    
+                    if (window.audioContext.audioWorklet) {
+                        // Modern approach - but let's use ScriptProcessor for compatibility
+                    }
+                    
+                    // Use ScriptProcessor (deprecated but widely supported)
+                    processor = window.audioContext.createScriptProcessor(1024, 1, 1);
+                    
+                    processor.onaudioprocess = function(e) {
+                        if (ws && ws.readyState === WebSocket.OPEN) {
+                            const inputData = e.inputBuffer.getChannelData(0);
+                            
+                            // Check if there's actual audio data (not silence)
+                            let hasAudio = false;
+                            for (let i = 0; i < inputData.length; i++) {
+                                if (Math.abs(inputData[i]) > 0.01) {
+                                    hasAudio = true;
+                                    break;
+                                }
+                            }
+                            
+                            if (hasAudio) {
+                                // Convert float32 to 16-bit PCM
+                                const pcmData = new Int16Array(inputData.length);
+                                for (let i = 0; i < inputData.length; i++) {
+                                    const sample = Math.max(-1, Math.min(1, inputData[i]));
+                                    pcmData[i] = sample * 32767;
+                                }
+                                
+                                // Convert to base64
+                                const bytes = new Uint8Array(pcmData.buffer);
+                                let binary = '';
+                                for (let i = 0; i < bytes.length; i++) {
+                                    binary += String.fromCharCode(bytes[i]);
+                                }
+                                const base64 = btoa(binary);
                                 
                                 ws.send(JSON.stringify({
                                     type: 'audio_to_vapi',
@@ -596,42 +632,48 @@ async def demo_page():
                                 
                                 // Debug: Show mic is working
                                 audioSentCount++;
-                                if (audioSentCount % 10 === 1) { // Every 1 second
+                                if (audioSentCount % 20 === 1) { // Every ~2 seconds
                                     addMessage(`🎤 Mic active (${audioSentCount} chunks sent)`);
                                 }
-                            };
-                            reader.readAsArrayBuffer(event.data);
+                            }
                         }
                     };
                     
-                    mediaRecorder.onstop = function() {
-                        isRecording = false;
-                        addMessage('🔇 Recording stopped');
-                        stream.getTracks().forEach(track => track.stop());
-                    };
+                    source.connect(processor);
+                    processor.connect(window.audioContext.destination);
                     
-                    mediaRecorder.onerror = function(event) {
-                        addMessage('Recording error: ' + event.error);
-                    };
-                    
-                    // Start recording with frequent data events
-                    mediaRecorder.start(100); // 100ms chunks for real-time
+                    // Store references for cleanup
                     window.micStream = stream;
+                    window.micProcessor = processor;
+                    window.micSource = source;
                     
                     document.getElementById('recordBtn').disabled = true;
                     document.getElementById('stopBtn').disabled = false;
                     addMessage('🎤 Recording started - speak now!');
                     
+                    // Test if we're getting audio input
+                    setTimeout(() => {
+                        if (audioSentCount === 0) {
+                            addMessage('⚠️ No audio detected - try speaking louder or check microphone permissions');
+                        }
+                    }, 3000);
+                    
                 } catch (error) {
-                    addMessage('Error accessing microphone: ' + error);
+                    addMessage('Error accessing microphone: ' + error.message);
+                    console.error('Microphone error:', error);
                 }
             }
             
             function stopRecording() {
-                if (mediaRecorder && mediaRecorder.state === 'recording') {
-                    mediaRecorder.stop();
+                // Clean up Web Audio API components
+                if (window.micProcessor) {
+                    window.micProcessor.disconnect();
+                    window.micProcessor = null;
                 }
-                
+                if (window.micSource) {
+                    window.micSource.disconnect();
+                    window.micSource = null;
+                }
                 if (window.micStream) {
                     window.micStream.getTracks().forEach(track => track.stop());
                     window.micStream = null;
@@ -639,6 +681,7 @@ async def demo_page():
                 
                 document.getElementById('recordBtn').disabled = false;
                 document.getElementById('stopBtn').disabled = true;
+                addMessage('🔇 Recording stopped');
             }
             
             // Audio buffering for smooth playback
