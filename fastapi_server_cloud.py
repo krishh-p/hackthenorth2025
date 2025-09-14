@@ -413,7 +413,13 @@ async def demo_page():
             // Professional audio system with AudioWorklet and jitter buffer
             let ws = null;
             let audioContext = null;
+            let outNode = null;
             
+            // Jitter buffer state
+            let playQueue = [];
+            let playhead = 0;           // seconds (AudioContext time)
+            const BUFFER_AHEAD = 0.25;  // 250ms headroom for smooth playback
+            const CHUNK_SAMPLES = 320;  // 20ms @ 16k
             const SR_IN = 16000;
             
             function addMessage(msg) {
@@ -462,28 +468,26 @@ async def demo_page():
                     const buf = audioContext.createBuffer(1, float.length, SR_IN);
                     buf.copyToChannel(float, 0, 0);
 
-                    // Immediate playback - no jitter buffer for now
+                    // Initialize playhead once a little in the future
+                    const now = audioContext.currentTime;
+                    if (playhead < now + 0.01) playhead = now + BUFFER_AHEAD;
+
                     const src = audioContext.createBufferSource();
                     src.buffer = buf;
                     
                     // Add gain node for extra volume
                     const gainNode = audioContext.createGain();
-                    gainNode.gain.value = 5.0; // Even higher volume boost
+                    gainNode.gain.value = 3.0; // Extra volume boost
                     
                     src.connect(gainNode);
                     gainNode.connect(audioContext.destination);
 
-                    // Play immediately
-                    const now = audioContext.currentTime;
-                    src.start(now);
+                    // duration in seconds at 16k: samples / 16000
+                    const dur = float.length / SR_IN;
+                    src.start(playhead);
+                    playhead += dur;
                     
-                    console.log('🔊 Playing immediately at', now);
-                    
-                    // Test if audio is actually playing
-                    setTimeout(() => {
-                        console.log('🔊 Audio should be playing now at', audioContext.currentTime);
-                    }, 100);
-                    
+                    console.log('✅ Audio scheduled at', playhead, 'duration:', dur);
                     addMessage('🔊 Playing audio chunk (' + pcm16.length + ' samples)');
                 } catch (error) {
                     console.error('❌ Audio playback error:', error);
