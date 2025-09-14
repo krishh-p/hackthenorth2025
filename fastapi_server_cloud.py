@@ -594,7 +594,7 @@ async def demo_page():
                 }
             }
             
-            // Professional AudioWorklet-based recording
+            // Professional AudioWorklet-based recording with fallback
             async function startRecording() {
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({
@@ -608,25 +608,57 @@ async def demo_page():
 
                     if (!audioContext) {
                         audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                        await audioContext.audioWorklet.addModule('/worklets/capture-16k.js');
                     }
-
-                    const src = audioContext.createMediaStreamSource(stream);
-                    const worklet = new AudioWorkletNode(audioContext, 'capture-16k');
-                    src.connect(worklet);
                     
-                    worklet.port.onmessage = (ev) => {
-                        if (ws && ws.readyState === WebSocket.OPEN) {
-                            // Add debug logging for microphone data
-                            console.log('🎤 Sending mic data, size:', ev.data.byteLength);
-                            // Send binary ArrayBuffer (PCM16 mono 16k) directly
-                            ws.send(ev.data);
-                        }
-                    };
+                    // Try AudioWorklet first
+                    try {
+                        console.log('🎤 Loading AudioWorklet...');
+                        await audioContext.audioWorklet.addModule('/worklets/capture-16k.js');
+                        
+                        const src = audioContext.createMediaStreamSource(stream);
+                        const worklet = new AudioWorkletNode(audioContext, 'capture-16k');
+                        src.connect(worklet);
+                        
+                        worklet.port.onmessage = (ev) => {
+                            if (ws && ws.readyState === WebSocket.OPEN) {
+                                console.log('🎤 Sending mic data (AudioWorklet), size:', ev.data.byteLength);
+                                ws.send(ev.data);
+                            }
+                        };
+
+                        addMessage('🎤 AudioWorklet capture active - speak now!');
+                        
+                    } catch (workletError) {
+                        console.warn('AudioWorklet failed, using ScriptProcessor fallback:', workletError);
+                        
+                        // Fallback to ScriptProcessor
+                        const src = audioContext.createMediaStreamSource(stream);
+                        const processor = audioContext.createScriptProcessor(1024, 1, 1);
+                        
+                        processor.onaudioprocess = (event) => {
+                            if (ws && ws.readyState === WebSocket.OPEN) {
+                                const inputData = event.inputBuffer.getChannelData(0);
+                                
+                                // Convert float32 to int16 PCM
+                                const pcm16 = new Int16Array(inputData.length);
+                                for (let i = 0; i < inputData.length; i++) {
+                                    const s = Math.max(-1, Math.min(1, inputData[i]));
+                                    pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+                                }
+                                
+                                console.log('🎤 Sending mic data (ScriptProcessor), size:', pcm16.byteLength);
+                                ws.send(pcm16.buffer);
+                            }
+                        };
+                        
+                        src.connect(processor);
+                        processor.connect(audioContext.destination);
+                        
+                        addMessage('🎤 ScriptProcessor capture active - speak now!');
+                    }
 
                     document.getElementById('recordBtn').textContent = 'Recording...';
                     document.getElementById('recordBtn').disabled = true;
-                    addMessage('🎤 Professional audio capture active - speak now!');
                     
                 } catch (error) {
                     addMessage('Microphone access error: ' + error.message);
